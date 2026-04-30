@@ -1,0 +1,40 @@
+name: Frontend CI/CD (Vue.js)
+
+on:
+  push:
+    branches: [ "main" ]
+    paths: [ "frontend/**" ] 
+  pull_request:
+    branches: [ "main" ]
+    paths: [ "frontend/**" ]
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    steps:
+    - name: Checkout cod sursă
+      uses: actions/checkout@v3
+
+    - name: Configurare Node.js
+      uses: actions/setup-node@v3
+      with:
+        node-version: '20' # AJUSTEAZA VERSIUNEA !!!
+
+    - name: Instalare dependențe (NPM)
+      run: npm ci
+
+    - name: Build fișiere statice Vue.js pentru producție
+      run: npm run build
+
+    # --- Secțiunea de Deployment (CD) ---
+    # Această secțiune va trimite fișierele din folderul /dist către LXC 4
+    - name: Deploy to LXC 4 (Frontend Vue.js)
+      if: github.ref == 'refs/heads/main'
+      run: |
+        echo "Fișierele compilate din ./frontend/dist vor fi mutate pe serverul web."
+        echo "Deployment-ul va fi securizat prin VPN."
