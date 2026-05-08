@@ -17,6 +17,7 @@ MetaHuman este un sistem informatic destinat monitorizării la distanță a stă
 ## Structura Repository-ului (Monorepo)
 * `/backend` - API-ul REST dezvoltat în C# (ASP.NET Core).
 * `/frontend` - Interfața grafică dezvoltată în Vue.js.
+* `/database` - Scripturile SQL pentru crearea și popularea bazei de date (ex: `01_init_schema.sql`).
 * `/mobile` - Codul sursă pentru aplicația client Android.
 * `/hardware` - Codul sursă C/C++ pentru placa Arduino.
 * `/docs` - Documentația oficială a proiectului (Specificații, Proiectare, Teste de Acceptanță, Plan de Marketing) [12].
