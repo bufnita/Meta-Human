@@ -12,13 +12,13 @@ namespace MetaHuman.Backend.Models
         public DbSet<Utilizator> Utilizatori { get; set; }
         public DbSet<Medic> Medici { get; set; }
         public DbSet<Pacient> Pacienti { get; set; }
-        public DbSet<DispozitivAsociat> DispozitiveAsociate { get; set; }
-        public DbSet<PragAlerta> PraguriAlerta { get; set; }
+//        public DbSet<DispozitivAsociat> DispozitiveAsociate { get; set; }
+//        public DbSet<PragAlerta> PraguriAlerta { get; set; }
         public DbSet<Masuratoare> Masuratori { get; set; }
         public DbSet<InregistrareECG> InregistrariECG { get; set; }
-        public DbSet<Recomandare> Recomandari { get; set; }
+//        public DbSet<Recomandare> Recomandari { get; set; }
         public DbSet<Alerta> Alerte { get; set; }
-        public DbSet<SesiuneAutentificare> SesiuniAutentificare { get; set; }
+//        public DbSet<SesiuneAutentificare> SesiuniAutentificare { get; set; }
 
         // ==========================================
         // 2. CONFIGURAREA RELAȚIILOR ȘI INDECȘILOR (Fluent API)
@@ -133,7 +133,7 @@ namespace MetaHuman.Backend.Models
             });
             
             // --- TABELUL RECOMANDARE ---
-            modelBuilder.Entity<Recomandare>(entity =>
+       /*     modelBuilder.Entity<Recomandare>(entity =>
             {
                 entity.ToTable("Recomandare");
                 entity.HasKey(r => r.IdRecomandare);
@@ -156,6 +156,7 @@ namespace MetaHuman.Backend.Models
                 entity.HasKey(s => s.IdSesiune);
                 entity.HasOne<Utilizator>().WithMany().HasForeignKey(s => s.IdUtilizator);
             });
+            */
         }
     }
 }

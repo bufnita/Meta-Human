@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
-// using MetaHuman.Backend.Models;
+using MetaHuman.Backend.Models;
 // using MetaHuman.Backend.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -25,6 +25,10 @@ builder.Services.AddDbContext<MetaHumanContext>(options =>
 // Adăugăm suportul pentru Controlere, care vor expune punctele finale (endpoints) ale API-ului REST [3].
 builder.Services.AddControllers();
 
+// Adaugam Swagger
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 // =====================================================================
 // 4. CONFIGURAREA PENTRU NGINX (Reverse Proxy - LXC 1)
 // =====================================================================
@@ -38,7 +42,16 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownProxies.Clear();
 });
 
+// Binding pentru 0.0.0.0 (localhost nu merge ok pe linux)
+builder.WebHost.UseUrls("http://0.0.0.0:5000");
 var app = builder.Build();
+
+// Verificam mediul, daca e Development folosim Swagger
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 // =====================================================================
 // PIPELINE-UL HTTP (Ordinea este foarte importantă)
