@@ -1,0 +1,51 @@
+name: Backend STAGING CI/CD
+
+on:
+  push:
+    branches:
+      - staging
+    paths:
+      - "backend/**"
+
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Publish
+        run: dotnet publish -c Release -o ./publish
+
+      - name: Deploy to STAGING server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USERNAME }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          port: ${{ secrets.STAGING_PORT }}
+          source: "backend/publish/*"
+          target: "/opt/backend-staging"
+
+      - name: Restart staging backend
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USERNAME }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          port: ${{ secrets.STAGING_PORT }}
+          script: |
+            systemctl restart backend-staging
+            systemctl status backend-staging --no-pager
