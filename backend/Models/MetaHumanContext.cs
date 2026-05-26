@@ -30,7 +30,7 @@ namespace MetaHuman.Backend.Models
             // --- TABELUL UTILIZATOR ---
             modelBuilder.Entity<Utilizator>(entity =>
             {
-                entity.ToTable("Utilizator");
+                entity.ToTable("utlizator");
                 entity.HasKey(u => u.IdUtilizator);
                 
                 // Index unic cerut pentru adresa de e-mail [2]
@@ -40,7 +40,7 @@ namespace MetaHuman.Backend.Models
             // --- TABELUL MEDIC ---
             modelBuilder.Entity<Medic>(entity =>
             {
-                entity.ToTable("Medic");
+                entity.ToTable("medic");
                 entity.HasKey(m => m.IdMedic);
 
                 // Relație 1:1 cu Utilizator [1]
@@ -52,7 +52,7 @@ namespace MetaHuman.Backend.Models
             // --- TABELUL PACIENT ---
             modelBuilder.Entity<Pacient>(entity =>
             {
-                entity.ToTable("Pacient");
+                entity.ToTable("pacient");
                 entity.HasKey(p => p.IdPacient);
 
                 // Relație 1:1 cu Utilizator [1]
@@ -72,7 +72,7 @@ namespace MetaHuman.Backend.Models
             // --- TABELUL MĂSURĂTOARE ---
             modelBuilder.Entity<Masuratoare>(entity =>
             {
-                entity.ToTable("Masuratoare");
+                entity.ToTable("masuratoare");
                 entity.HasKey(m => m.IdMasuratoare);
 
                 // Relație N:1 cu Pacient
@@ -87,7 +87,7 @@ namespace MetaHuman.Backend.Models
             // --- TABELUL ÎNREGISTRARE ECG ---
             modelBuilder.Entity<InregistrareECG>(entity =>
             {
-                entity.ToTable("InregistrareECG");
+                entity.ToTable("inregistrareECG");
                 entity.HasKey(e => e.IdInregistrareEcg);
 
                 entity.HasOne<Pacient>()
@@ -116,7 +116,7 @@ namespace MetaHuman.Backend.Models
             // --- TABELUL ALERTĂ ---
             modelBuilder.Entity<Alerta>(entity =>
             {
-                entity.ToTable("Alerta");
+                entity.ToTable("alerta");
                 entity.HasKey(a => a.IdAlerta);
 
                 // Relație N:1 cu Pacient
