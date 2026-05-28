@@ -1,4 +1,4 @@
-name: Backend STAGING CI/CD
+name: Backend STAGING
 
 on:
   push:
@@ -7,11 +7,9 @@ on:
     paths:
       - "backend/**"
 
-  workflow_dispatch:
-
 jobs:
-  build-and-deploy:
-    runs-on: ubuntu-latest
+  deploy:
+    runs-on: self-hosted
 
     defaults:
       run:
@@ -21,31 +19,16 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup .NET
-        uses: actions/setup-dotnet@v4
-        with:
-          dotnet-version: "8.0.x"
-
-      - name: Publish
+      - name: Publish ASP.NET Core
         run: dotnet publish -c Release -o ./publish
 
-      - name: Deploy to STAGING server
-        uses: appleboy/scp-action@v0.1.7
-        with:
-          host: ${{ secrets.STAGING_HOST }}
-          username: ${{ secrets.STAGING_USERNAME }}
-          key: ${{ secrets.STAGING_SSH_KEY }}
-          port: ${{ secrets.STAGING_PORT }}
-          source: "backend/publish/*"
-          target: "/opt/backend-staging"
+      - name: Deploy files
+        run: |
+          rm -rf /opt/backend-staging/*
+          cp -r ./publish/* /opt/backend-staging/
 
-      - name: Restart staging backend
-        uses: appleboy/ssh-action@v1.0.3
-        with:
-          host: ${{ secrets.STAGING_HOST }}
-          username: ${{ secrets.STAGING_USERNAME }}
-          key: ${{ secrets.STAGING_SSH_KEY }}
-          port: ${{ secrets.STAGING_PORT }}
-          script: |
-            systemctl restart backend-staging
-            systemctl status backend-staging --no-pager
+      - name: Restart backend
+        run: sudo systemctl restart backend-staging
+
+      - name: Show service status
+        run: sudo systemctl status backend-staging --no-pager
