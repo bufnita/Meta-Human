@@ -1,17 +1,17 @@
 name: Backend STAGING
 
 on:
+  workflow_dispatch:
+
   push:
     branches:
       - staging
     paths:
       - "backend/**"
 
-  workflow_dispatch:
-
 jobs:
   deploy:
-    runs-on: [self-hosted, Linux, X64]
+    runs-on: self-hosted
 
     defaults:
       run:
