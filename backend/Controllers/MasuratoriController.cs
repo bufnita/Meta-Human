@@ -2,20 +2,31 @@ using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
 using MetaHuman.Backend.Models;
 using MetaHuman.Backend.DTOs;
+using Microsoft.AspNetCore.Authorization;
 
 namespace MetaHuman.Backend.Controllers
 {
+    [Authorize]
+
     // Ruta de bază va fi /api/masuratori (numele controlerului fără sufixul "Controller")
     [Route("api/[controller]")]
     [ApiController]
     public class MasuratoriController : ControllerBase
+    
     {
+        
         private readonly MetaHumanContext _context;
 
         // Injectăm instanța bazei de date (configurată anterior în Program.cs)
         public MasuratoriController(MetaHumanContext context)
         {
             _context = context;
+        }
+
+        [HttpGet("test")]
+        public IActionResult Test()
+        {
+            return Ok("JWT merge");
         }
 
         // RUTA: POST /api/masuratori
