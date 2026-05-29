@@ -1,0 +1,43 @@
+name: Frontend STAGING
+
+on:
+  workflow_dispatch:
+
+  push:
+    branches:
+      - staging
+    paths:
+      - "frontend/**"
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Deploy files
+        run: |
+          sudo mkdir -p /var/www/metahuman
+          sudo rsync -a --delete ./dist/ /var/www/metahuman/
+
+      - name: Reload nginx
+        run: sudo systemctl reload nginx
