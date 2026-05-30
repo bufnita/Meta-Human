@@ -44,7 +44,15 @@ builder.Services
             };
     });
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("Admin", policy =>
+        policy.RequireRole(RolUtilizator.Admin.ToDbValue()));
+    options.AddPolicy("Medic", policy =>
+        policy.RequireRole(RolUtilizator.Medic.ToDbValue()));
+    options.AddPolicy("Pacient", policy =>
+        policy.RequireRole(RolUtilizator.Pacient.ToDbValue()));
+});
 
 builder.Services.AddScoped<JwtService>();
 

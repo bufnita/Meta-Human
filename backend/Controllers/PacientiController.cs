@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Threading.Tasks;
@@ -10,6 +11,7 @@ namespace MetaHuman.Backend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+    [Authorize(Policy = "Medic")]
     public class PacientiController : ControllerBase
     {
         private readonly MetaHumanContext _context;

@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 
 namespace MetaHuman.Backend.Controllers
 {
-    [Authorize]
+    [Authorize(Policy = "Pacient")]
 
     // Ruta de bază va fi /api/masuratori (numele controlerului fără sufixul "Controller")
     [Route("api/[controller]")]

@@ -17,6 +17,9 @@ public class JwtService
 
     public string GenereazaToken(Utilizator utilizator)
     {
+        if (!RolUtilizatorExtensions.TryFromDbValue(utilizator.Rol, out var rol))
+            throw new InvalidOperationException("Rol utilizator invalid.");
+
         var cheie =
             new SymmetricSecurityKey(
                 Encoding.UTF8.GetBytes(
@@ -44,7 +47,7 @@ public class JwtService
 
             new(
                 ClaimTypes.Role,
-                utilizator.Rol
+                rol.ToDbValue()
             )
         };
 

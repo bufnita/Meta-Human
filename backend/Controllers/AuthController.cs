@@ -1,4 +1,3 @@
-using BCrypt.Net;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using MetaHuman.Backend.DTOs;
@@ -29,7 +28,7 @@ public class AuthController : ControllerBase
         var utilizator =
             await _context.Utilizatori
                 .FirstOrDefaultAsync(u =>
-                    u.Email == cerere.Email);
+                    u.Email == cerere.Email.Trim());
 
         if (utilizator == null)
             return Unauthorized();
@@ -46,50 +45,58 @@ public class AuthController : ControllerBase
         if (!parolaValida)
             return Unauthorized();
 
+        if (!RolUtilizatorExtensions.TryFromDbValue(utilizator.Rol, out var rol))
+            return Unauthorized();
+
         string nume = "";
         string prenume = "";
 
-        if (utilizator.Rol == "Medic")
+        switch (rol)
         {
-            var medic =
-                await _context.Medici
-                    .FirstOrDefaultAsync(m =>
-                        m.IdUtilizator ==
-                        utilizator.IdUtilizator);
-
-            if (medic != null)
+            case RolUtilizator.Medic:
             {
-                nume = medic.Nume;
-                prenume = medic.Prenume;
+                var medic =
+                    await _context.Medici
+                        .FirstOrDefaultAsync(m =>
+                            m.IdUtilizator ==
+                            utilizator.IdUtilizator);
+
+                if (medic != null)
+                {
+                    nume = medic.Nume;
+                    prenume = medic.Prenume;
+                }
+
+                break;
             }
-        }
-
-        if (utilizator.Rol == "Pacient")
-        {
-            var pacient =
-                await _context.Pacienti
-                    .FirstOrDefaultAsync(p =>
-                        p.IdUtilizator ==
-                        utilizator.IdUtilizator);
-
-            if (pacient != null)
+            case RolUtilizator.Pacient:
             {
-                nume = pacient.Nume;
-                prenume = pacient.Prenume;
+                var pacient =
+                    await _context.Pacienti
+                        .FirstOrDefaultAsync(p =>
+                            p.IdUtilizator ==
+                            utilizator.IdUtilizator);
+
+                if (pacient != null)
+                {
+                    nume = pacient.Nume;
+                    prenume = pacient.Prenume;
+                }
+
+                break;
             }
+            case RolUtilizator.Admin:
+                break;
         }
 
         return Ok(
             new RaspunsAutentificareDTO
             {
                 Email = utilizator.Email,
-                Rol = utilizator.Rol,
+                Rol = rol.ToDbValue(),
                 Nume = nume,
                 Prenume = prenume,
-                Token =
-                    _jwtService.GenereazaToken(
-                        utilizator
-                    )
+                Token = _jwtService.GenereazaToken(utilizator)
             }
         );
     }
