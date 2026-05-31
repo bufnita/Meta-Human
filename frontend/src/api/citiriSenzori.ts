@@ -6,14 +6,14 @@ export const citiriSenzoriApi = {
     pacientId: number,
     ultimele: number = 100,
   ): Promise<CitireSenzor[]> {
-    const response = await api.get(`/CitiriSenzori/pacient/${pacientId}`, {
+    const response = await api.get(`/masuratori/pacient/${pacientId}`, {
       params: { ultimele },
     })
     return response.data
   },
 
   async adaugaCitire(citire: Omit<CitireSenzor, 'id' | 'timestamp'>): Promise<CitireSenzor> {
-    const response = await api.post('/CitiriSenzori', citire)
+    const response = await api.post('/masuratori', citire)
     return response.data
   },
 }
