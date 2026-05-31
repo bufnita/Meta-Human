@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using MetaHuman.Backend.Helpers;
 using MetaHuman.Backend.Services;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.EntityFrameworkCore;
@@ -52,9 +53,23 @@ builder.Services.AddAuthorization(options =>
         policy.RequireRole(RolUtilizator.Medic.ToDbValue()));
     options.AddPolicy("Pacient", policy =>
         policy.RequireRole(RolUtilizator.Pacient.ToDbValue()));
+    options.AddPolicy("MedicOrAdmin", policy =>
+        policy.RequireRole(
+            RolUtilizator.Admin.ToDbValue(),
+            RolUtilizator.Medic.ToDbValue()));
 });
 
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<IUtilizatorCurentAccessor, UtilizatorCurentAccessor>();
+builder.Services.AddScoped<IdentitateClinicalaResolver>();
 builder.Services.AddScoped<JwtService>();
+builder.Services.AddScoped<MedicService>();
+builder.Services.AddScoped<PacientService>();
+builder.Services.AddScoped<AlertService>();
+builder.Services.AddScoped<MasuratoareService>();
+builder.Services.AddScoped<PragAlertaService>();
+builder.Services.AddScoped<EcgService>();
+builder.Services.AddScoped<RecomandareService>();
 
 // 3. Adăugarea suportului pentru controlere (inclusiv MasuratoriController)
 builder.Services.AddControllers();

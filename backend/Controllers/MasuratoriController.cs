@@ -1,71 +1,73 @@
-using Microsoft.AspNetCore.Mvc;
-using System.Threading.Tasks;
-using MetaHuman.Backend.Models;
 using MetaHuman.Backend.DTOs;
+using MetaHuman.Backend.Exceptions;
+using MetaHuman.Backend.Services;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 
-namespace MetaHuman.Backend.Controllers
+namespace MetaHuman.Backend.Controllers;
+
+[Route("api/[controller]")]
+[ApiController]
+[Authorize(Policy = "Pacient")]
+public class MasuratoriController : ControllerBase
 {
-    [Authorize(Policy = "Pacient")]
+    private readonly MasuratoareService _masuratoareService;
+    private readonly EcgService _ecgService;
 
-    // Ruta de bază va fi /api/masuratori (numele controlerului fără sufixul "Controller")
-    [Route("api/[controller]")]
-    [ApiController]
-    public class MasuratoriController : ControllerBase
-    
+    public MasuratoriController(
+        MasuratoareService masuratoareService,
+        EcgService ecgService)
     {
-        
-        private readonly MetaHumanContext _context;
+        _masuratoareService = masuratoareService;
+        _ecgService = ecgService;
+    }
 
-        // Injectăm instanța bazei de date (configurată anterior în Program.cs)
-        public MasuratoriController(MetaHumanContext context)
+    [HttpPost]
+    public async Task<ActionResult<RaspunsMasuratoareDTO>> PreluareMasuratoare(
+        [FromBody] CerereMasuratoareDTO dto,
+        CancellationToken cancellationToken)
+    {
+        try
         {
-            _context = context;
+            var masuratoare = await _masuratoareService.SalveazaAsync(dto, cancellationToken);
+            return Created(string.Empty, masuratoare);
         }
-
-        [HttpGet("test")]
-        public IActionResult Test()
+        catch (AccesInterzisException ex)
         {
-            return Ok("JWT merge");
+            return StatusCode(403, new { mesaj = ex.Message });
         }
+    }
 
-        // RUTA: POST /api/masuratori
-        [HttpPost]
-        public async Task<IActionResult> PreluareMasuratoare([FromBody] MasuratoareDTO dto)
+    [HttpPost("ecg")]
+    public async Task<ActionResult<RaspunsEcgDTO>> PreluareEcg(
+        [FromBody] CerereEcgDTO dto,
+        CancellationToken cancellationToken)
+    {
+        try
         {
-            // 1. Validăm dacă JSON-ul primit este corect formatat
-            if (!ModelState.IsValid)
-            {
-                // Returnăm codul standardizat HTTP 400 Bad Request pentru JSON malformat [3]
-                return BadRequest(ModelState); 
-            }
+            var ecg = await _ecgService.SalveazaAsync(dto, cancellationToken);
+            return Created(string.Empty, ecg);
+        }
+        catch (AccesInterzisException ex)
+        {
+            return StatusCode(403, new { mesaj = ex.Message });
+        }
+    }
 
-            // 2. Mapăm DTO-ul (primit de la telefon) pe modelul C# al bazei de date
-            var nouaMasuratoare = new Masuratoare
-            {
-                IdPacient = dto.IdPacient,
-                TipParametru = dto.TipParametru,
-                Valoare = dto.Valoare,
-                UnitateMasura = dto.Unitate,
-                DataOra = dto.DataOra,
-                Sursa = dto.Sursa,
-                Stare = "Prelucrat" // Setăm o stare inițială
-            };
-
-            try
-            {
-                // 3. Salvăm în PostgreSQL
-                _context.Masuratori.Add(nouaMasuratoare);
-                await _context.SaveChangesAsync();
-
-                // 4. Returnăm răspunsul standardizat 201 Created către aplicația mobilă [3]
-                return Created(string.Empty, new { mesaj = "Măsurătoarea a fost salvată cu succes." });
-            }
-            catch (Exception)
-            {
-                // În cazul în care cade conexiunea TCP cu PostgreSQL, returnăm eroare internă [3]
-                return StatusCode(500, "A apărut o eroare la salvarea datelor în baza de date.");
-            }
+    [HttpGet("istoric")]
+    public async Task<ActionResult<RaspunsIstoricMasuratoriDTO>> ObtineIstoricPropriu(
+        [FromQuery] int ultimele = 100,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            return Ok(await _masuratoareService.ObtineIstoricPentruPacientCurentAsync(
+                ultimele,
+                cancellationToken));
+        }
+        catch (AccesInterzisException ex)
+        {
+            return StatusCode(403, new { mesaj = ex.Message });
         }
     }
 }
