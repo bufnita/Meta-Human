@@ -2,34 +2,44 @@
   <div class="pacienti">
     <div class="antet">
       <h1>Pacienți</h1>
-      <button class="btn-primar" @click="arataFormularAdaugare = true">Adaugă Pacient</button>
+      <button class="btn-primar" @click="arataFormular = true">Adaugă Pacient</button>
     </div>
 
     <div v-if="pacientiStore.incarcare">Se încarcă...</div>
     <div v-if="pacientiStore.eroare" class="eroare">{{ pacientiStore.eroare }}</div>
 
-    <!-- Formular adaugare -->
-    <div v-if="arataFormularAdaugare" class="formular-container">
+    <!-- Formular adăugare -->
+    <div v-if="arataFormular" class="formular-container">
       <h2>Pacient Nou</h2>
       <form @submit.prevent="adaugaPacient">
         <div class="rand-campuri">
           <div class="camp">
-            <label>Nume</label>
+            <label>Nume *</label>
             <input v-model="formular.nume" required />
           </div>
           <div class="camp">
-            <label>Prenume</label>
+            <label>Prenume *</label>
             <input v-model="formular.prenume" required />
           </div>
         </div>
         <div class="rand-campuri">
           <div class="camp">
-            <label>CNP</label>
-            <input v-model="formular.cnp" required />
+            <label>Vârstă *</label>
+            <input v-model.number="formular.varsta" type="number" min="1" required />
           </div>
           <div class="camp">
-            <label>Data Nașterii</label>
-            <input v-model="formular.dataNasterii" type="date" required />
+            <label>CNP</label>
+            <input v-model="formular.cnp" maxlength="13" />
+          </div>
+        </div>
+        <div class="rand-campuri">
+          <div class="camp">
+            <label>Email *</label>
+            <input v-model="formular.email" type="email" required />
+          </div>
+          <div class="camp">
+            <label>Parolă * (min. 6 caractere)</label>
+            <input v-model="formular.parola" type="password" minlength="6" required />
           </div>
         </div>
         <div class="rand-campuri">
@@ -38,13 +48,24 @@
             <input v-model="formular.telefon" />
           </div>
           <div class="camp">
-            <label>Email</label>
-            <input v-model="formular.email" type="email" />
+            <label>Adresă</label>
+            <input v-model="formular.adresa" />
           </div>
         </div>
-        <div class="camp">
-          <label>Adresă</label>
-          <input v-model="formular.adresa" />
+        <div class="rand-campuri">
+          <div class="camp">
+            <label>Profesie</label>
+            <input v-model="formular.profesie" />
+          </div>
+          <div class="camp">
+            <label>Loc de muncă</label>
+            <input v-model="formular.locMunca" />
+          </div>
+        </div>
+        <!-- idMedic doar pentru Admin -->
+        <div v-if="utilizatorStore.esteAdmin" class="camp">
+          <label>ID Medic *</label>
+          <input v-model.number="formular.idMedic" type="number" required />
         </div>
         <div class="butoane-formular">
           <button type="submit" class="btn-primar" :disabled="pacientiStore.incarcare">
@@ -55,30 +76,49 @@
       </form>
     </div>
 
-    <!-- Lista pacienti -->
+    <!-- Lista pacienți -->
     <table v-if="pacientiStore.pacienti.length > 0">
       <thead>
         <tr>
           <th>Nume</th>
           <th>Prenume</th>
-          <th>CNP</th>
+          <th>Vârstă</th>
           <th>Telefon</th>
           <th>Email</th>
+          <th>Activ</th>
           <th>Acțiuni</th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="pacient in pacientiStore.pacienti" :key="pacient.id">
+        <tr
+          v-for="pacient in pacientiStore.pacienti"
+          :key="pacient.idPacient"
+          :class="{ inactiv: !pacient.activ }"
+        >
           <td data-label="Nume">{{ pacient.nume }}</td>
           <td data-label="Prenume">{{ pacient.prenume }}</td>
-          <td data-label="CNP">{{ pacient.cnp }}</td>
-          <td data-label="Telefon">{{ pacient.telefon }}</td>
-          <td data-label="Email">{{ pacient.email }}</td>
+          <td data-label="Vârstă">{{ pacient.varsta }}</td>
+          <td data-label="Telefon">{{ pacient.telefon ?? '-' }}</td>
+          <td data-label="Email">{{ pacient.email ?? '-' }}</td>
+          <td data-label="Activ">
+            <span :class="pacient.activ ? 'badge-activ' : 'badge-inactiv'">
+              {{ pacient.activ ? 'Activ' : 'Inactiv' }}
+            </span>
+          </td>
           <td class="td-actiuni">
-            <button class="btn-contur" @click="router.push(`/pacienti/${pacient.id}`)">
+            <button class="btn-contur" @click="router.push(`/pacienti/${pacient.idPacient}`)">
               Detalii
             </button>
-            <button class="btn-contur-rosu" @click="stergePacient(pacient.id)">Șterge</button>
+            <button class="btn-contur-rosu" @click="dezactiveazaPacient(pacient.idPacient)">
+              Dezactivează
+            </button>
+            <button
+              v-if="utilizatorStore.esteAdmin"
+              class="btn-contur-rosu"
+              @click="stergeDefinitiv(pacient.idPacient)"
+            >
+              Șterge
+            </button>
           </td>
         </tr>
       </tbody>
@@ -91,52 +131,64 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePacientiStore } from '../stores/pacienti'
+import { useUtilizatorStore } from '../stores/utilizator'
 
 const router = useRouter()
 const pacientiStore = usePacientiStore()
+const utilizatorStore = useUtilizatorStore()
 
-const arataFormularAdaugare = ref(false)
+const arataFormular = ref(false)
 
-const formular = ref({
+const formularGol = () => ({
   nume: '',
   prenume: '',
+  varsta: 0,
   cnp: '',
-  telefon: '',
   email: '',
+  parola: '',
+  telefon: '',
   adresa: '',
-  dataNasterii: '',
+  profesie: '',
+  locMunca: '',
+  idMedic: undefined as number | undefined,
 })
 
+const formular = ref(formularGol())
+
 onMounted(() => {
-  pacientiStore.incarcaTotiPacientii()
+  pacientiStore.incarcaLista()
 })
 
 async function adaugaPacient() {
-  await pacientiStore.adaugaPacient({
+  const cerere = {
     ...formular.value,
-    dataNasterii: new Date(formular.value.dataNasterii).toISOString(),
-  })
+    cnp: formular.value.cnp || undefined,
+    telefon: formular.value.telefon || undefined,
+    adresa: formular.value.adresa || undefined,
+    profesie: formular.value.profesie || undefined,
+    locMunca: formular.value.locMunca || undefined,
+    idMedic: utilizatorStore.esteAdmin ? formular.value.idMedic : undefined,
+  }
+  await pacientiStore.creeaza(cerere)
   if (!pacientiStore.eroare) {
     anuleaza()
   }
 }
 
 function anuleaza() {
-  arataFormularAdaugare.value = false
-  formular.value = {
-    nume: '',
-    prenume: '',
-    cnp: '',
-    telefon: '',
-    email: '',
-    adresa: '',
-    dataNasterii: '',
+  arataFormular.value = false
+  formular.value = formularGol()
+}
+
+async function dezactiveazaPacient(id: number) {
+  if (confirm('Ești sigur că vrei să dezactivezi acest pacient?')) {
+    await pacientiStore.dezactiveaza(id)
   }
 }
 
-async function stergePacient(id: number) {
-  if (confirm('Ești sigur că vrei să ștergi acest pacient?')) {
-    await pacientiStore.stergePacient(id)
+async function stergeDefinitiv(id: number) {
+  if (confirm('Ești sigur că vrei să ȘTERGI DEFINITIV acest pacient? Acțiunea este ireversibilă!')) {
+    await pacientiStore.stergeDefinitiv(id)
   }
 }
 </script>
@@ -157,16 +209,8 @@ async function stergePacient(id: number) {
   border-bottom: 2px solid #e2e8f0;
 }
 
-h1 {
-  font-size: 1.8rem;
-  color: #2d3748;
-}
-
-h2 {
-  font-size: 1.2rem;
-  color: #2d3748;
-  margin-bottom: 1.2rem;
-}
+h1 { font-size: 1.8rem; color: #2d3748; }
+h2 { font-size: 1.2rem; color: #2d3748; margin-bottom: 1.2rem; }
 
 .btn-primar {
   padding: 0.5rem 1.2rem;
@@ -177,15 +221,9 @@ h2 {
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  transition:
-    background-color 0.2s,
-    color 0.2s;
+  transition: background-color 0.2s, color 0.2s;
 }
-
-.btn-primar:hover {
-  background-color: #2d7d46;
-  color: white;
-}
+.btn-primar:hover { background-color: #2d7d46; color: white; }
 
 .btn-contur {
   padding: 0.4rem 0.9rem;
@@ -196,16 +234,10 @@ h2 {
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition:
-    background-color 0.2s,
-    color 0.2s;
   margin-right: 0.4rem;
+  transition: background-color 0.2s, color 0.2s;
 }
-
-.btn-contur:hover {
-  background-color: #2d7d46;
-  color: white;
-}
+.btn-contur:hover { background-color: #2d7d46; color: white; }
 
 .btn-contur-rosu {
   padding: 0.4rem 0.9rem;
@@ -216,15 +248,10 @@ h2 {
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
-  transition:
-    background-color 0.2s,
-    color 0.2s;
+  margin-right: 0.4rem;
+  transition: background-color 0.2s, color 0.2s;
 }
-
-.btn-contur-rosu:hover {
-  background-color: #e74c3c;
-  color: white;
-}
+.btn-contur-rosu:hover { background-color: #e74c3c; color: white; }
 
 .formular-container {
   background: white;
@@ -235,15 +262,9 @@ h2 {
   border-top: 4px solid #2d7d46;
 }
 
-.rand-campuri {
-  display: flex;
-  gap: 1rem;
-}
+.rand-campuri { display: flex; gap: 1rem; }
 
-.camp {
-  flex: 1;
-  margin-bottom: 1rem;
-}
+.camp { flex: 1; margin-bottom: 1rem; }
 
 .camp label {
   display: block;
@@ -263,16 +284,9 @@ h2 {
   outline: none;
   transition: border-color 0.2s;
 }
+.camp input:focus { border-color: #2d7d46; }
 
-.camp input:focus {
-  border-color: #2d7d46;
-}
-
-.butoane-formular {
-  display: flex;
-  gap: 1rem;
-  margin-top: 0.5rem;
-}
+.butoane-formular { display: flex; gap: 1rem; margin-top: 0.5rem; }
 
 table {
   width: 100%;
@@ -299,12 +313,30 @@ td {
   color: #2d3748;
 }
 
-.td-actiuni {
-  white-space: nowrap;
+.td-actiuni { white-space: nowrap; }
+
+tbody tr:nth-child(odd) td { background-color: #ffffff; }
+tbody tr:nth-child(even) td { background-color: #f7f9fb; }
+tbody tr:hover td { background-color: #e8f5ee; }
+
+tr.inactiv td { color: #a0aec0; }
+
+.badge-activ {
+  background-color: #c6f6d5;
+  color: #276749;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
-tr:hover td {
-  background-color: #f0f4f8;
+.badge-inactiv {
+  background-color: #fed7d7;
+  color: #c53030;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
 }
 
 .eroare {
@@ -317,41 +349,12 @@ tr:hover td {
   font-size: 0.9rem;
 }
 
-tbody tr:nth-child(odd) td {
-  background-color: #ffffff;
-}
-
-tbody tr:nth-child(even) td {
-  background-color: #f7f9fb;
-}
-
-tbody tr:hover td {
-  background-color: #e8f5ee;
-}
-
 @media (max-width: 640px) {
-  .pacienti {
-    padding: 1.5rem 1rem;
-  }
-
-  table thead {
-    display: none;
-  }
-
-  table,
-  tbody,
-  tr,
-  td {
-    display: block;
-    width: 100%;
-  }
-
-  table {
-    background: transparent;
-    box-shadow: none;
-    border-radius: 0;
-  }
-
+  .pacienti { padding: 1.5rem 1rem; }
+  .rand-campuri { flex-direction: column; gap: 0; }
+  table thead { display: none; }
+  table, tbody, tr, td { display: block; width: 100%; }
+  table { background: transparent; box-shadow: none; border-radius: 0; }
   tbody tr {
     background: white !important;
     border-radius: 12px;
@@ -363,13 +366,9 @@ tbody tr:hover td {
     border-right: 1px solid #e2e8f0;
     border-bottom: 1px solid #e2e8f0;
   }
-
   tbody tr:nth-child(even) td,
   tbody tr:nth-child(odd) td,
-  tbody tr:hover td {
-    background: transparent !important;
-  }
-
+  tbody tr:hover td { background: transparent !important; }
   td {
     padding: 0.35rem 0;
     border: none;
@@ -378,28 +377,9 @@ tbody tr:hover td {
     justify-content: space-between;
     border-bottom: 1px solid #f0f4f8;
   }
-
-  td:last-child {
-    border-bottom: none;
-  }
-
-  td::before {
-    content: attr(data-label);
-    font-weight: 600;
-    color: #2d7d46;
-    font-size: 0.85rem;
-  }
-
-  .td-actiuni {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.5rem;
-    margin-top: 0.5rem;
-    padding-top: 0.5rem;
-  }
-
-  .td-actiuni::before {
-    display: none;
-  }
+  td:last-child { border-bottom: none; }
+  td::before { content: attr(data-label); font-weight: 600; color: #2d7d46; font-size: 0.85rem; }
+  .td-actiuni { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem; }
+  .td-actiuni::before { display: none; }
 }
 </style>

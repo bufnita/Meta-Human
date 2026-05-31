@@ -10,7 +10,7 @@ export const useUtilizatorStore = defineStore('utilizator', () => {
 
   const esteAutentificat = computed(() => !!utilizator.value)
   const esteAdmin = computed(() => utilizator.value?.rol === 'Admin')
-  const esteDoctor = computed(() => utilizator.value?.rol === 'Doctor')
+  const esteMedic = computed(() => utilizator.value?.rol === 'Medic')
   const estePacient = computed(() => utilizator.value?.rol === 'Pacient')
 
   async function autentificare(cerere: CerereLogin) {
@@ -23,7 +23,8 @@ export const useUtilizatorStore = defineStore('utilizator', () => {
       localStorage.setItem('utilizator', JSON.stringify(date))
     } catch (err: unknown) {
       eroare.value =
-        (err as { response?: { data?: string } }).response?.data || 'Eroare la autentificare'
+        (err as { response?: { data?: { mesaj?: string } } }).response?.data?.mesaj ||
+        'Eroare la autentificare'
     } finally {
       incarcare.value = false
     }
@@ -47,7 +48,7 @@ export const useUtilizatorStore = defineStore('utilizator', () => {
     eroare,
     esteAutentificat,
     esteAdmin,
-    esteDoctor,
+    esteMedic,
     estePacient,
     autentificare,
     deconectare,

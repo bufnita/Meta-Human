@@ -1,32 +1,72 @@
 import api from './axios'
-import type { Pacient } from '../types'
+import type {
+  Pacient,
+  PacientDetaliu,
+  CererePacient,
+  IstoricMasuratori,
+  Alerta,
+  PragAlerta,
+  CererePragAlerta,
+  Recomandare,
+  CerereRecomandare,
+} from '../types'
 
 export const pacientiApi = {
-  async afiseazaTotiPacientii(): Promise<Pacient[]> {
-    const response = await api.get('/Pacienti')
+  async obtineLista(): Promise<Pacient[]> {
+    const response = await api.get('/pacienti')
     return response.data
   },
 
-  async afiseazaPacientDupaId(id: number): Promise<Pacient> {
-    const response = await api.get(`/Pacienti/${id}`)
+  async obtineDetaliu(id: number): Promise<PacientDetaliu> {
+    const response = await api.get(`/pacienti/${id}`)
     return response.data
   },
 
-  async adaugaPacient(pacient: Omit<Pacient, 'id' | 'dataInregistrarii'>): Promise<Pacient> {
-    const response = await api.post('/Pacienti', pacient)
+  async creeaza(cerere: CererePacient): Promise<Pacient> {
+    const response = await api.post('/pacienti', cerere)
     return response.data
   },
 
-  async actualizeazaPacient(
-    id: number,
-    pacient: Omit<Pacient, 'id' | 'dataInregistrarii'>,
-  ): Promise<Pacient> {
-    const response = await api.put(`/Pacienti/${id}`, pacient)
+  async actualizeaza(id: number, cerere: CererePacient): Promise<Pacient> {
+    const response = await api.put(`/pacienti/${id}`, cerere)
     return response.data
   },
 
-  async stergePacient(id: number): Promise<string> {
-    const response = await api.delete(`/Pacienti/${id}`)
+  async dezactiveaza(id: number): Promise<void> {
+    await api.delete(`/pacienti/${id}`)
+  },
+
+  async stergeDefinitiv(id: number): Promise<void> {
+    await api.delete(`/pacienti/${id}/definitiv`)
+  },
+
+  async obtineIstoric(id: number, ultimele = 100): Promise<IstoricMasuratori> {
+    const response = await api.get(`/pacienti/${id}/istoric`, { params: { ultimele } })
+    return response.data
+  },
+
+  async obtineAlarme(id: number): Promise<Alerta[]> {
+    const response = await api.get(`/pacienti/${id}/alarme`)
+    return response.data
+  },
+
+  async obtinePraguri(id: number): Promise<PragAlerta[]> {
+    const response = await api.get(`/pacienti/${id}/praguri`)
+    return response.data
+  },
+
+  async configureazaPrag(id: number, cerere: CererePragAlerta): Promise<PragAlerta> {
+    const response = await api.post(`/pacienti/${id}/praguri`, cerere)
+    return response.data
+  },
+
+  async obtineRecomandari(id: number): Promise<Recomandare[]> {
+    const response = await api.get(`/pacienti/${id}/recomandari`)
+    return response.data
+  },
+
+  async adaugaRecomandare(id: number, cerere: CerereRecomandare): Promise<Recomandare> {
+    const response = await api.post(`/pacienti/${id}/recomandari`, cerere)
     return response.data
   },
 }

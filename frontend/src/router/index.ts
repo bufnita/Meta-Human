@@ -28,9 +28,9 @@ const router = createRouter({
       meta: { necesitaAutentificare: true },
     },
     {
-      path: '/doctori',
-      name: 'doctori',
-      component: () => import('../views/DoctoriVizualizare.vue'),
+      path: '/medici',
+      name: 'medici',
+      component: () => import('../views/MediciVizualizare.vue'),
       meta: { necesitaAutentificare: true, necesitaAdmin: true },
     },
     {
