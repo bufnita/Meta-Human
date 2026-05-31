@@ -9,21 +9,49 @@ Conform deciziilor de arhitectură, backend-ul este **nucleul logic al aplicați
 Responsabilitățile sale principale sunt:
 * **Validarea și procesarea datelor:** Preia măsurătorile și capturile ECG trimise de aplicația mobilă în format JSON și le validează.
 * **Acces exclusiv la baza de date:** Este singura componentă din întregul sistem care are permisiunea să interogheze și să modifice datele din PostgreSQL (prin TCP/IP și SQL).
-* **Generarea alertelor:** Conține logica de business pentru compararea valorilor măsurate cu pragurile configurate de medic și generează alerte dacă o abatere persistă o anumită durată de timp configurabilă. *(Planificat — vezi secțiunea 5.)*
+* **Generarea alertelor:** Compară valorile măsurate cu pragurile configurate de medic și generează alerte când o abatere persistă durata minimă configurată.
 * **Autentificare și Autorizare:** Gestionează accesul utilizatorilor pe bază de roluri (**Admin**, **Medic**, **Pacient**) utilizând tokenuri JWT.
 * **Deservirea interfeței web:** Furnizează date agregate (grafice, istoric, rapoarte) către frontend-ul Vue.js.
 
 ## 2. Organizarea Internă a Codului în C#
-Pentru ca responsabilitățile să fie separate și codul să rămână ușor de întreținut, proiectarea internă a backend-ului se împarte logic în următoarele straturi:
 
-* **Controlere (Controllers):** Punctele finale (endpoints) care expun API-ul REST, interceptează cererile HTTP venite de la Nginx și returnează răspunsurile HTTP adecvate.
-  * Implementate: `AuthController`, `PacientiController`, `MasuratoriController`.
-* **Servicii (Services):** Clase C# cu logică reutilizabilă.
-  * Implementat: `JwtService` — generarea token-urilor JWT.
-  * Planificat: `AlertService` — evaluarea pragurilor și generarea alertelor.
-* **Modele de Transfer de Date (DTOs):** Obiecte C# simplificate pentru JSON (ex. `CerereAutentificareDTO`, `MasuratoareDTO`), evitând expunerea directă a structurii bazei de date acolo unde este posibil.
-* **Entități și context EF (Models):** Maparea tabelelor PostgreSQL în entități C# prin `MetaHumanContext` (Entity Framework Core). Accesul la date se face în prezent direct din controllere; stratul Repository poate fi introdus ulterior dacă complexitatea crește.
-* **Enum roluri (`RolUtilizator`):** `Admin`, `Medic`, `Pacient` — folosit în cod pentru validare și policy-uri JWT. În baza de date, coloana `utilizator.rol` rămâne `VARCHAR`; conversia se face prin `RolUtilizatorExtensions` (`ToDbValue`, `TryFromDbValue`).
+### Convenții de implementare
+Fluxul standard este **Controller → Service → DTO**:
+
+1. **Controller** — primește HTTP, validează model binding, aplică policy JWT, traduce excepțiile în coduri HTTP.
+2. **Service** — conține logica de business, verifică accesul la resurse (medic/pacient), interacționează cu EF Core.
+3. **DTO** — formatele JSON de intrare/ieșire; entitățile EF nu sunt expuse direct în API.
+
+### Straturi
+
+| Strat | Rol | Exemple |
+| :--- | :--- | :--- |
+| **Controllers** | Endpoints REST | `AuthController`, `MediciController`, `PacientiController`, `AlerteController`, `MasuratoriController` |
+| **Services** | Logică reutilizabilă | `JwtService`, `MedicService`, `PacientService`, `MasuratoareService`, `AlertService`, `PragAlertaService`, `EcgService`, `RecomandareService` |
+| **Helpers** | Acces la context HTTP / claims JWT | `IUtilizatorCurentAccessor`, `UtilizatorCurentAccessor`, `IdentitateClinicalaResolver` |
+| **Exceptions** | Erori de domeniu traduse în HTTP | `AccesInterzisException` (403), `ResursaNegasitaException` (404) |
+| **DTOs** | Contract JSON | `CerereAutentificareDTO`, `CerereMedicDTO`, `CererePacientDTO`, `CerereMasuratoareDTO`, `CererePragAlertaDTO`, `CerereRecomandareDTO`, `CerereEcgDTO`, etc. |
+| **Models** | Entități EF + `MetaHumanContext` | `Utilizator`, `Medic`, `Pacient`, `Masuratoare`, `PragAlerta`, `Alerta`, `Recomandare`, `Ecg` |
+| **Enum roluri** | `RolUtilizator` | `Admin`, `Medic`, `Pacient` — conversie DB prin `RolUtilizatorExtensions` (`ToDbValue`, `TryFromDbValue`) |
+
+### Planificat (neimplementat)
+* **`DispozitivAsociat`** — legătura dispozitiv mobil ↔ pacient.
+* **`SesiuneAutentificare`** — amânat (JWT rămâne stateless).
+* **`POST /api/auth/inregistrare`** — **nu se va implementa** (fără self-registration).
+* **Strat Repository** — opțional, dacă complexitatea crește.
+
+### Creare conturi (fără înregistrare publică)
+
+Nu există endpoint de înregistrare. Conturile se creează ierarhic:
+
+| Cine creează | Ce creează | Cum |
+| :--- | :--- | :--- |
+| **Seed manual DB** | Admin (unic) | Insert în `utilizator` cu `rol = Admin` |
+| **Admin** | Medic | `POST /api/medici` — `Utilizator` + `Medic` |
+| **Medic** | Pacient (+ login) | `POST /api/pacienti` — `Utilizator` + `Pacient`; `IdMedic` din JWT |
+| **Admin** | Pacient (+ login) | `POST /api/pacienti` — trebuie `idMedic` în body |
+
+La creare pacient, `CererePacientDTO` cere `email` și `parola` (cont login). Dezactivarea (`DELETE` fără `/definitiv`) păstrează legătura `IdMedic`; nu dezalocă pacientul. Pentru ca un medic să nu mai aibă pacienți legați: Admin **reatribuie** (`PUT` cu alt `IdMedic`) sau **șterge definitiv** pacienții. Ștergerea definitivă a unui medic e permisă doar dacă nu există niciun rând în `Pacient` cu acel `IdMedic` (inclusiv pacienți dezactivați).
 
 ## 3. Autentificare și Autorizare JWT
 
@@ -41,86 +69,103 @@ Setările JWT se citesc din secțiunea **`Autentificare`** din `appsettings.json
 
 ### Login
 * **Rută:** `POST /api/auth/login`
-* **Cerere:** `CerereAutentificareDTO` — `email` (Required, EmailAddress, MaxLength 150), `parola` (Required, MinLength 6).
+* **Cerere:** `CerereAutentificareDTO` — `email`, `parola`.
 * **Răspuns:** `RaspunsAutentificareDTO` — `email`, `token`, `rol`, `nume`, `prenume`.
-* **Flux:**
-  1. Validare DTO → **400** dacă datele sunt invalide.
-  2. Verificare email + parolă (BCrypt) + cont activ → **401** dacă eșuează.
-  3. Validare rol cu `TryFromDbValue` (null, gol sau valoare necunoscută → **401**, fără token).
-  4. Încărcare `nume`/`prenume` din `Medic` sau `Pacient` după rol; Admin nu are profil extins.
-  5. Generare JWT prin `JwtService` (claim `role` = valoarea enum, ex. `"Medic"`).
+* **Flux:** validare DTO → verificare BCrypt + cont activ → validare rol → profil Medic/Pacient → JWT cu claim `role`.
 
 ### Policy-uri de autorizare
-Definite în `Program.cs`:
 
-| Policy | Rol necesar | Utilizare tipică |
+| Policy | Rol(uri) | Utilizare |
 | :--- | :--- | :--- |
-| `Admin` | Admin | Gestionare sistem (planificat) |
-| `Medic` | Medic | `PacientiController` |
-| `Pacient` | Pacient | `MasuratoriController` |
+| `Admin` | Admin | CRUD medici |
+| `Medic` | Medic | Alerte globale, rezolvare/ignorare |
+| `Pacient` | Pacient | Trimitere măsurători și ECG |
+| `MedicOrAdmin` | Medic sau Admin | Gestionare pacienți și sub-resurse |
 
 Endpoint-urile protejate necesită header: `Authorization: Bearer {token}`.
 
+### Reguli de acces la date
+* **Medic** vede doar pacienții alocați lui (`Pacient.IdMedic`).
+* **Admin** vede toți pacienții; la creare pacient trebuie să trimită `IdMedic` în body.
+* **Medic** la creare pacient primește automat `IdMedic` din JWT (ignoră câmpul din body).
+* **Pacient** poate trimite măsurători doar pentru propriul profil (identificat din JWT) și poate citi istoricul propriu via `GET /api/masuratori/istoric`.
+
 ## 4. Rute și Endpoint-uri API
 
-Backend-ul expune rute API securizate (HTTPS intermediat de Nginx). Mai jos: ce este **implementat** și ce este **planificat**.
+Rutele sunt REST pe resurse; **rolul se verifică prin JWT**, nu prin prefix în URL.
+HTTPS este terminat la **Nginx**; backend-ul ascultă intern pe HTTP (vezi secțiunea 7).
 
 ### Autentificare
-| Metodă | Rută | Status | Autorizare |
-| :--- | :--- | :--- | :--- |
-| POST | `/api/auth/login` | Implementat | Public |
+| Metodă | Rută | Autorizare |
+| :--- | :--- | :--- |
+| POST | `/api/auth/login` | Public |
 
-### Gestionarea Pacienților
-| Metodă | Rută | Status | Autorizare |
-| :--- | :--- | :--- | :--- |
-| GET | `/api/pacienti` | Implementat | Policy `Medic` |
-| GET | `/api/pacienti/{id}` | Implementat | Policy `Medic` |
-| POST | `/api/pacienti` | Implementat | Policy `Medic` |
-| GET | `/api/pacienti/{id}/istoric` | Planificat | Policy `Medic` |
-| GET | `/api/pacienti/{id}/alerte` | Planificat | Policy `Medic` |
+### Medici (Admin)
+| Metodă | Rută | Descriere |
+| :--- | :--- | :--- |
+| GET | `/api/medici` | Lista medicilor |
+| GET | `/api/medici/{id}` | Detaliu medic |
+| POST | `/api/medici` | Creare medic (+ cont Utilizator) |
+| PUT | `/api/medici/{id}` | Actualizare medic |
+| DELETE | `/api/medici/{id}` | Dezactivare cont medic |
+| DELETE | `/api/medici/{id}/definitiv` | Ștergere definitivă medic (Admin; fără pacienți legați) |
 
-### Configurare și Recomandări
-| Metodă | Rută | Status | Autorizare |
-| :--- | :--- | :--- | :--- |
-| POST | `/api/pacienti/{id}/praguri` | Planificat | Policy `Medic` |
-| POST | `/api/pacienti/{id}/recomandari` | Planificat | Policy `Medic` |
+### Pacienți (Medic sau Admin)
+| Metodă | Rută | Descriere |
+| :--- | :--- | :--- |
+| GET | `/api/pacienti` | Lista pacienților (filtrată pentru Medic) |
+| GET | `/api/pacienti/{id}` | Detaliu pacient (DTO) |
+| POST | `/api/pacienti` | Creare pacient + cont Utilizator (email, parolă) |
+| PUT | `/api/pacienti/{id}` | Actualizare pacient (Admin poate reatribui `IdMedic`) |
+| DELETE | `/api/pacienti/{id}` | Dezactivare pacient + cont (Medic: proprii; Admin: orice) |
+| DELETE | `/api/pacienti/{id}/definitiv` | Ștergere definitivă din DB (doar Admin) |
+| GET | `/api/pacienti/{id}/istoric` | Istoric măsurători |
+| GET | `/api/pacienti/{id}/alarme` | Alerte pentru pacient |
+| GET | `/api/pacienti/{id}/praguri` | Praguri alertă configurate |
+| POST | `/api/pacienti/{id}/praguri` | Configurare prag alertă |
+| GET | `/api/pacienti/{id}/recomandari` | Recomandări active/istorice |
+| POST | `/api/pacienti/{id}/recomandari` | Creare recomandare |
 
-### Achiziție Date (Aplicație Mobilă)
-| Metodă | Rută | Status | Autorizare |
-| :--- | :--- | :--- | :--- |
-| POST | `/api/masuratori` | Implementat | Policy `Pacient` |
-| GET | `/api/masuratori/test` | Implementat (debug) | Policy `Pacient` |
-| POST | `/api/masuratori/ecg` | Planificat | Policy `Pacient` |
+### Alerte globale (Medic)
+| Metodă | Rută | Descriere |
+| :--- | :--- | :--- |
+| GET | `/api/alerte` | Toate alertele medicului curent |
+| GET | `/api/alerte/active` | Alerte active |
+| PUT | `/api/alerte/{id}/rezolva` | Marchează alertă rezolvată |
+| PUT | `/api/alerte/{id}/ignora` | Marchează alertă ignorată |
+
+### Achiziție date — aplicație mobilă (Pacient)
+| Metodă | Rută | Descriere |
+| :--- | :--- | :--- |
+| POST | `/api/masuratori` | Salvare măsurătoare (+ evaluare alerte) |
+| POST | `/api/masuratori/ecg` | Salvare captură ECG |
+| GET | `/api/masuratori/istoric` | Istoric măsurători proprii (Pacient, JWT); query `ultimele` (default 100) |
 
 ## 5. Standardizarea Răspunsurilor și a Erorilor
-Pentru a asigura o comunicare clară cu aplicația mobilă și interfața web, backend-ul returnează răspunsuri bazate pe coduri de stare HTTP:
 
-| Cod HTTP | Semnificație | Situație Tipică de Utilizare |
+| Cod HTTP | Semnificație | Situație tipică |
 | :--- | :--- | :--- |
-| **200 OK** | Operație reușită | Citirea datelor, login reușit. |
-| **201 Created** | Resursă creată | Inserarea unei măsurători sau a unui pacient. |
-| **400 Bad Request** | Cerere invalidă | JSON malformat, email invalid, parolă prea scurtă. |
-| **401 Unauthorized** | Neautorizat | Lipsă token JWT, token expirat, credențiale greșite sau rol invalid la login. |
-| **403 Forbidden** | Acces interzis | Token valid, dar rol incorect pentru endpoint (ex. Pacient pe `/api/pacienti`). |
-| **404 Not Found** | Resursă inexistentă | ID pacient inexistent. |
-| **500 Internal Server Error** | Eroare internă | Eroare DB sau excepție neprinsă. |
+| **200 OK** | Succes | Citire, actualizare, login |
+| **201 Created** | Resursă creată | Pacient, măsurătoare, prag, recomandare |
+| **400 Bad Request** | Cerere invalidă | Validare DTO eșuată |
+| **401 Unauthorized** | Neautorizat | Lipsă/expirat JWT, credențiale greșite |
+| **403 Forbidden** | Acces interzis | Rol incorect sau resursă altui medic |
+| **404 Not Found** | Inexistent | ID invalid |
+| **500 Internal Server Error** | Eroare internă | Excepție neprinsă, eroare DB |
 
 ## 6. Fluxul Datelor (Exemplu: Salvare Măsurătoare)
 
-### Implementat acum
-1. Primește `POST /api/masuratori` cu `MasuratoareDTO` de la aplicația mobilă.
-2. Validează JWT (rol **Pacient**).
-3. Salvează valoarea în tabelul `Masuratoare`.
-4. Returnează **201 Created**.
-
-### Planificat (logică alerte)
-5. Citește din `PragAlerta` limitele și durata de persistență configurate de medic.
-6. Compară valoarea cu pragurile; dacă există depășire, interoghează istoricul recent.
-7. Dacă abaterea persistă peste durata minimă, inserează în `Alerta`.
-8. Returnează **201 Created** (cu eventuale informații despre alertă generată).
+1. Aplicația mobilă trimite `POST /api/masuratori` cu `CerereMasuratoareDTO`.
+2. Backend validează JWT (rol **Pacient**) și identifică pacientul din token.
+3. `MasuratoareService` salvează în tabelul `Masuratoare`.
+4. `AlertService` evaluează pragurile active (`PragAlerta`) și istoricul recent.
+5. Dacă abaterea persistă peste durata minimă, se inserează o înregistrare în `Alerta`.
+6. Răspuns **201 Created** cu `RaspunsMasuratoareDTO`.
 
 ## 7. Infrastructură și Mediu
-* **Port intern:** `5000` (`http://0.0.0.0:5000`) — expus prin Nginx ca reverse proxy.
-* **Forwarded headers:** Configurate pentru Nginx (`X-Forwarded-For`, `X-Forwarded-Proto`).
+
+* **Ascultare internă:** `http://0.0.0.0:5000` — fără TLS în container; expus doar în rețeaua internă.
+* **Nginx (reverse proxy):** termină HTTPS, forward către backend; setează `X-Forwarded-For` și `X-Forwarded-Proto`.
+* **Forwarded headers:** Configurate în `Program.cs` pentru a reconstrui scheme/host corect.
 * **CORS:** Configurabil prin `Cors:AllowAnyOrigin` (activ în Development).
 * **Swagger:** Disponibil în mediul Development.
