@@ -1,74 +1,67 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { alarmeApi } from '../api/alarme'
-import type { Alarma } from '../types'
+import type { Alerta } from '../types'
 
 export const useAlarmeStore = defineStore('alarme', () => {
-  const alarme = ref<Alarma[]>([])
-  const alarmeActive = ref<Alarma[]>([])
+  const alarme = ref<Alerta[]>([])
+  const alarmeActive = ref<Alerta[]>([])
   const incarcare = ref(false)
   const eroare = ref<string | null>(null)
 
-  async function incarcaToateAlarmele() {
+  async function incarcaToate() {
     incarcare.value = true
     eroare.value = null
     try {
-      alarme.value = await alarmeApi.afiseazaToateAlarmele()
+      alarme.value = await alarmeApi.obtineToate()
     } catch (err: unknown) {
       eroare.value =
-        (err as { response?: { data?: string } }).response?.data || 'Eroare la incarcarea alarmelor'
+        (err as { response?: { data?: { mesaj?: string } } }).response?.data?.mesaj ||
+        'Eroare la încărcarea alertelor'
     } finally {
       incarcare.value = false
     }
   }
 
-  async function incarcaAlarmeActive() {
+  async function incarcaActive() {
     incarcare.value = true
     eroare.value = null
     try {
-      alarmeActive.value = await alarmeApi.afiseazaAlarmeActive()
+      alarmeActive.value = await alarmeApi.obtineActive()
     } catch (err: unknown) {
       eroare.value =
-        (err as { response?: { data?: string } }).response?.data ||
-        'Eroare la incarcarea alarmelor active'
+        (err as { response?: { data?: { mesaj?: string } } }).response?.data?.mesaj ||
+        'Eroare la încărcarea alertelor active'
     } finally {
       incarcare.value = false
     }
   }
 
-  async function rezolvaAlarma(id: number) {
-    incarcare.value = true
+  async function rezolva(id: number) {
     eroare.value = null
     try {
-      await alarmeApi.rezolvaAlarma(id)
-      alarmeActive.value = alarmeActive.value.filter((a) => a.id !== id)
-      const alarma = alarme.value.find((a) => a.id === id)
-      if (alarma) {
-        alarma.stare = 'Rezolvata'
-      }
+      const alertaActualizata = await alarmeApi.rezolva(id)
+      alarmeActive.value = alarmeActive.value.filter((a) => a.idAlerta !== id)
+      const index = alarme.value.findIndex((a) => a.idAlerta === id)
+      if (index !== -1) alarme.value[index] = alertaActualizata
     } catch (err: unknown) {
       eroare.value =
-        (err as { response?: { data?: string } }).response?.data || 'Eroare la rezolvarea alarmei'
-    } finally {
-      incarcare.value = false
+        (err as { response?: { data?: { mesaj?: string } } }).response?.data?.mesaj ||
+        'Eroare la rezolvarea alertei'
     }
   }
 
-  async function ignoraAlarma(id: number) {
-    incarcare.value = true
+  async function ignora(id: number) {
     eroare.value = null
     try {
-      await alarmeApi.ignoraAlarma(id)
-      alarmeActive.value = alarmeActive.value.filter((a) => a.id !== id)
-      const alarma = alarme.value.find((a) => a.id === id)
-      if (alarma) {
-        alarma.stare = 'Ignorata'
-      }
+      const alertaActualizata = await alarmeApi.ignora(id)
+      alarmeActive.value = alarmeActive.value.filter((a) => a.idAlerta !== id)
+      const index = alarme.value.findIndex((a) => a.idAlerta === id)
+      if (index !== -1) alarme.value[index] = alertaActualizata
     } catch (err: unknown) {
       eroare.value =
-        (err as { response?: { data?: string } }).response?.data || 'Eroare la ignorarea alarmei'
-    } finally {
-      incarcare.value = false
+        (err as { response?: { data?: { mesaj?: string } } }).response?.data?.mesaj ||
+        'Eroare la ignorarea alertei'
     }
   }
 
@@ -77,9 +70,9 @@ export const useAlarmeStore = defineStore('alarme', () => {
     alarmeActive,
     incarcare,
     eroare,
-    incarcaToateAlarmele,
-    incarcaAlarmeActive,
-    rezolvaAlarma,
-    ignoraAlarma,
+    incarcaToate,
+    incarcaActive,
+    rezolva,
+    ignora,
   }
 })
