@@ -1,7 +1,7 @@
 <template>
   <div class="alarme">
     <div class="antet">
-      <h1>Alarme</h1>
+      <h1>Alerte</h1>
       <div class="filtre">
         <button
           :class="filtru === 'toate' ? 'btn-primar' : 'btn-contur'"
@@ -51,7 +51,7 @@
         </tr>
       </tbody>
     </table>
-    <p v-else-if="!alarmeStore.incarcare">Nu există alarme.</p>
+    <p v-else-if="!alarmeStore.incarcare">Nu există alerte.</p>
   </div>
 </template>
 
@@ -108,9 +108,9 @@ h1 {
 }
 .btn-primar {
   padding: 0.5rem 1.2rem;
-  background-color: #2d7d46;
+  background-color: #0047AB;
   color: white;
-  border: 2px solid #2d7d46;
+  border: 2px solid #0047AB;
   border-radius: 8px;
   font-size: 0.9rem;
   font-weight: 600;
@@ -119,8 +119,8 @@ h1 {
 .btn-contur {
   padding: 0.4rem 0.9rem;
   background-color: white;
-  color: #2d7d46;
-  border: 2px solid #2d7d46;
+  color: #0047AB;
+  border: 2px solid #0047AB;
   border-radius: 8px;
   font-size: 0.85rem;
   font-weight: 600;
@@ -131,7 +131,7 @@ h1 {
     color 0.2s;
 }
 .btn-contur:hover {
-  background-color: #2d7d46;
+  background-color: #0047AB;
   color: white;
 }
 .btn-contur-rosu {
@@ -160,7 +160,7 @@ table {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
 }
 th {
-  background-color: #2d7d46;
+  background-color: #0047AB;
   color: white;
   padding: 0.9rem 0.75rem;
   text-align: left;
@@ -183,7 +183,7 @@ tbody tr:nth-child(even) td {
   background-color: #f7f9fb;
 }
 tbody tr:hover td {
-  background-color: #e8f5ee;
+  background-color: #eaf1ff;
 }
 .eroare {
   background-color: #fff5f5;
@@ -214,7 +214,7 @@ tbody tr:hover td {
     padding: 1rem;
     margin-bottom: 1rem;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    border-top: 4px solid #2d7d46;
+    border-top: 4px solid #0047AB;
     border-left: 1px solid #e2e8f0;
     border-right: 1px solid #e2e8f0;
     border-bottom: 1px solid #e2e8f0;
@@ -238,7 +238,7 @@ tbody tr:hover td {
   td::before {
     content: attr(data-label);
     font-weight: 600;
-    color: #2d7d46;
+    color: #0047AB;
     font-size: 0.85rem;
   }
   .td-actiuni {

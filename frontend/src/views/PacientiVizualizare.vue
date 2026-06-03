@@ -215,21 +215,21 @@ h2 { font-size: 1.2rem; color: #2d3748; margin-bottom: 1.2rem; }
 .btn-primar {
   padding: 0.5rem 1.2rem;
   background-color: white;
-  color: #2d7d46;
-  border: 2px solid #2d7d46;
+  color: #0047AB;
+  border: 2px solid #0047AB;
   border-radius: 8px;
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.2s, color 0.2s;
 }
-.btn-primar:hover { background-color: #2d7d46; color: white; }
+.btn-primar:hover { background-color: #0047AB; color: white; }
 
 .btn-contur {
   padding: 0.4rem 0.9rem;
   background-color: white;
-  color: #2d7d46;
-  border: 2px solid #2d7d46;
+  color: #0047AB;
+  border: 2px solid #0047AB;
   border-radius: 8px;
   font-size: 0.85rem;
   font-weight: 600;
@@ -237,7 +237,7 @@ h2 { font-size: 1.2rem; color: #2d3748; margin-bottom: 1.2rem; }
   margin-right: 0.4rem;
   transition: background-color 0.2s, color 0.2s;
 }
-.btn-contur:hover { background-color: #2d7d46; color: white; }
+.btn-contur:hover { background-color: #0047AB; color: white; }
 
 .btn-contur-rosu {
   padding: 0.4rem 0.9rem;
@@ -259,7 +259,7 @@ h2 { font-size: 1.2rem; color: #2d3748; margin-bottom: 1.2rem; }
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   margin-bottom: 1.5rem;
-  border-top: 4px solid #2d7d46;
+  border-top: 4px solid #0047AB;
 }
 
 .rand-campuri { display: flex; gap: 1rem; }
@@ -284,7 +284,7 @@ h2 { font-size: 1.2rem; color: #2d3748; margin-bottom: 1.2rem; }
   outline: none;
   transition: border-color 0.2s;
 }
-.camp input:focus { border-color: #2d7d46; }
+.camp input:focus { border-color: #0047AB; }
 
 .butoane-formular { display: flex; gap: 1rem; margin-top: 0.5rem; }
 
@@ -298,7 +298,7 @@ table {
 }
 
 th {
-  background-color: #2d7d46;
+  background-color: #0047AB;
   color: white;
   padding: 0.9rem 0.75rem;
   text-align: left;
@@ -317,7 +317,7 @@ td {
 
 tbody tr:nth-child(odd) td { background-color: #ffffff; }
 tbody tr:nth-child(even) td { background-color: #f7f9fb; }
-tbody tr:hover td { background-color: #e8f5ee; }
+tbody tr:hover td { background-color: #eaf1ff; }
 
 tr.inactiv td { color: #a0aec0; }
 
@@ -361,7 +361,7 @@ tr.inactiv td { color: #a0aec0; }
     padding: 1rem;
     margin-bottom: 1rem;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    border-top: 4px solid #2d7d46;
+    border-top: 4px solid #0047AB;
     border-left: 1px solid #e2e8f0;
     border-right: 1px solid #e2e8f0;
     border-bottom: 1px solid #e2e8f0;
@@ -378,7 +378,7 @@ tr.inactiv td { color: #a0aec0; }
     border-bottom: 1px solid #f0f4f8;
   }
   td:last-child { border-bottom: none; }
-  td::before { content: attr(data-label); font-weight: 600; color: #2d7d46; font-size: 0.85rem; }
+  td::before { content: attr(data-label); font-weight: 600; color: #0047AB; font-size: 0.85rem; }
   .td-actiuni { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem; }
   .td-actiuni::before { display: none; }
 }

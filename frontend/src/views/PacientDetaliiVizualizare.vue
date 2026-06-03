@@ -368,8 +368,8 @@ h2 {
 .btn-inapoi {
   padding: 0.5rem 1rem;
   background-color: white;
-  color: #2d7d46;
-  border: 2px solid #2d7d46;
+  color: #0047AB;
+  border: 2px solid #0047AB;
   border-radius: 8px;
   font-size: 0.9rem;
   font-weight: 600;
@@ -377,33 +377,33 @@ h2 {
   transition: background-color 0.2s, color 0.2s;
   white-space: nowrap;
 }
-.btn-inapoi:hover { background-color: #2d7d46; color: white; }
+.btn-inapoi:hover { background-color: #0047AB; color: white; }
 
 .btn-primar {
   padding: 0.5rem 1.2rem;
-  background-color: #2d7d46;
+  background-color: #0047AB;
   color: white;
-  border: 2px solid #2d7d46;
+  border: 2px solid #0047AB;
   border-radius: 8px;
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.2s;
 }
-.btn-primar:hover { background-color: #245f37; }
+.btn-primar:hover { background-color: #00357f; }
 
 .btn-contur {
   padding: 0.4rem 0.9rem;
   background-color: white;
-  color: #2d7d46;
-  border: 2px solid #2d7d46;
+  color: #0047AB;
+  border: 2px solid #0047AB;
   border-radius: 8px;
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.2s, color 0.2s;
 }
-.btn-contur:hover { background-color: #2d7d46; color: white; }
+.btn-contur:hover { background-color: #0047AB; color: white; }
 
 .badge-activ {
   background-color: #c6f6d5;
@@ -430,7 +430,7 @@ h2 {
   padding: 1.5rem 2rem;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  border-top: 4px solid #2d7d46;
+  border-top: 4px solid #0047AB;
 }
 
 .antet-card {
@@ -456,7 +456,7 @@ h2 {
 
 .eticheta {
   font-weight: 600;
-  color: #2d7d46;
+  color: #0047AB;
   min-width: 140px;
   font-size: 0.9rem;
 }
@@ -491,7 +491,7 @@ h2 {
   outline: none;
   transition: border-color 0.2s;
 }
-.camp input:focus { border-color: #2d7d46; }
+.camp input:focus { border-color: #0047AB; }
 
 .camp-checkbox {
   display: flex;
@@ -509,7 +509,7 @@ table {
 }
 
 th {
-  background-color: #2d7d46;
+  background-color: #0047AB;
   color: white;
   padding: 0.75rem;
   text-align: left;
@@ -526,7 +526,7 @@ td {
 
 tbody tr:nth-child(odd) td { background-color: #ffffff; }
 tbody tr:nth-child(even) td { background-color: #f7f9fb; }
-tbody tr:hover td { background-color: #e8f5ee; }
+tbody tr:hover td { background-color: #eaf1ff; }
 
 .row-activa td { background-color: #fff8e1 !important; }
 
@@ -554,7 +554,7 @@ tbody tr:hover td { background-color: #e8f5ee; }
     padding: 0.75rem;
     margin-bottom: 0.75rem;
     box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-    border-left: 3px solid #2d7d46;
+    border-left: 3px solid #0047AB;
   }
   tbody tr:nth-child(even) td,
   tbody tr:nth-child(odd) td,

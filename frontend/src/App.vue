@@ -10,7 +10,7 @@
             v-if="utilizatorStore.esteMedic || utilizatorStore.esteAdmin"
             to="/alarme"
             @click="meniuDeschis = false"
-          >Alarme</router-link>
+          >Alerte</router-link>
           <router-link
             v-if="utilizatorStore.esteAdmin"
             to="/medici"
@@ -71,7 +71,7 @@ body {
 }
 #aplicatie { height: 100vh; }
 nav {
-  background-color: #2d7d46;
+  background-color: #0047AB;
   padding: 0 2rem;
   display: flex;
   justify-content: space-between;
@@ -94,7 +94,7 @@ nav {
   justify-content: center;
   font-size: 16px;
   font-weight: 700;
-  color: #2d7d46;
+  color: #0047AB;
   flex-shrink: 0;
 }
 .nav-linkuri { display: flex; align-items: center; gap: 1.5rem; }
@@ -133,7 +133,7 @@ nav a.router-link-active { color: white; border-bottom: 2px solid white; }
     top: 62px;
     left: 0;
     right: 0;
-    background-color: #2d7d46;
+    background-color: #0047AB;
     flex-direction: column;
     align-items: flex-start;
     padding: 1rem 1.5rem;

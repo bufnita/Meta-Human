@@ -48,11 +48,11 @@
             />
           </svg>
         </div>
-        <h2>Alarme</h2>
-        <p>Vizualizează alarmele active</p>
+        <h2>Alerte</h2>
+        <p>Vizualizează alertele active</p>
       </div>
 
-      <div v-if="utilizatorStore.esteAdmin" class="card" @click="router.push('/doctori')">
+      <div v-if="utilizatorStore.esteAdmin" class="card" @click="router.push('/medici')">
         <div class="card-icon">
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -70,8 +70,8 @@
             />
           </svg>
         </div>
-        <h2>Doctori</h2>
-        <p>Gestionează doctorii</p>
+        <h2>Medici</h2>
+        <p>Gestionează medicii</p>
       </div>
     </div>
   </div>
@@ -113,7 +113,7 @@ h1 {
 }
 
 .email {
-  color: #2d7d46;
+  color: #0047AB;
 }
 
 .carduri {
@@ -132,7 +132,7 @@ h1 {
   transition:
     transform 0.2s,
     box-shadow 0.2s;
-  border-top: 4px solid #2d7d46;
+  border-top: 4px solid #0047AB;
 }
 
 .card:hover {
@@ -141,7 +141,7 @@ h1 {
 }
 
 .card-icon {
-  color: #2d7d46;
+  color: #0047AB;
   margin-bottom: 1rem;
 }
 
@@ -159,8 +159,8 @@ h1 {
 .btn-deconectare {
   padding: 0.5rem 1.2rem;
   background-color: white;
-  color: #2d7d46;
-  border: 2px solid #2d7d46;
+  color: #0047AB;
+  border: 2px solid #0047AB;
   border-radius: 8px;
   font-size: 0.9rem;
   font-weight: 600;
@@ -171,7 +171,7 @@ h1 {
 }
 
 .btn-deconectare:hover {
-  background-color: #2d7d46;
+  background-color: #0047AB;
   color: white;
 }
 </style>

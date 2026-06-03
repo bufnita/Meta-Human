@@ -1,95 +1,14 @@
 <template>
+  <div v-if="afiseazaSplash" class="splash-screen">
+    <div class="splash-brand">
+      <div class="splash-logo">M</div>
+      <div class="splash-text">MetaHuman</div>
+    </div>
+  </div>
+
   <div class="autentificare-container">
     <div class="autentificare-stanga">
-      <div class="logo">M</div>
-      <div class="caracteristici">
-        <div class="caracteristica">
-          <span class="icon">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="22"
-              height="22"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="white"
-              stroke-width="1.5"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z"
-              />
-            </svg>
-          </span>
-          <span>Monitorizare puls în timp real</span>
-        </div>
-        <div class="caracteristica">
-          <span class="icon">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="22"
-              height="22"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="white"
-              stroke-width="1.5"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M12 9V4a1 1 0 00-2 0v5a3 3 0 102 0z"
-              />
-              <circle cx="11" cy="17" r="3" stroke="white" stroke-width="1.5" fill="none" />
-              <line
-                x1="11"
-                y1="9"
-                x2="11"
-                y2="14"
-                stroke="white"
-                stroke-width="1.5"
-                stroke-linecap="round"
-              />
-            </svg>
-          </span>
-          <span>Temperatura corporală</span>
-        </div>
-        <div class="caracteristica">
-          <span class="icon">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="22"
-              height="22"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="white"
-              stroke-width="1.5"
-            >
-              <path stroke-linecap="round" stroke-linejoin="round" d="M3 12h2l2-6 4 12 3-9 2 3h3" />
-            </svg>
-          </span>
-          <span>Analiză ECG</span>
-        </div>
-        <div class="caracteristica">
-          <span class="icon">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="22"
-              height="22"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="white"
-              stroke-width="1.5"
-            >
-              <path
-                stroke-linecap="round"
-                stroke-linejoin="round"
-                d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
-              />
-            </svg>
-          </span>
-          <span>Alarme automate</span>
-        </div>
-      </div>
+      <div class="login-logo">M</div>
     </div>
 
     <div class="autentificare-dreapta">
@@ -97,19 +16,31 @@
         <h2>Bun venit</h2>
         <p class="subtitlu">Autentificați-vă pentru a continua</p>
 
-        <div v-if="eroare" class="eroare">{{ eroare }}</div>
-
         <form @submit.prevent="autentificare">
           <div class="camp">
             <label>Email</label>
-            <input v-model="email" type="email" placeholder="email@exemplu.ro" required />
+            <input
+              v-model="email"
+              type="email"
+              placeholder="email@exemplu.ro"
+              required
+            />
           </div>
+
           <div class="camp">
             <label>Parolă</label>
-            <input v-model="parola" type="password" placeholder="••••••••" required />
+            <input
+              v-model="parola"
+              type="password"
+              placeholder="••••••••"
+              required
+            />
           </div>
+
+          <p v-if="eroare" class="eroare">{{ eroare }}</p>
+
           <button type="submit" :disabled="incarcare">
-            {{ incarcare ? 'Se încarcă...' : 'Autentificare' }}
+            {{ incarcare ? 'Se autentifică...' : 'Autentificare' }}
           </button>
         </form>
       </div>
@@ -118,9 +49,17 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { onMounted, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUtilizatorStore } from '../stores/utilizator'
+
+const afiseazaSplash = ref(true)
+
+onMounted(() => {
+  setTimeout(() => {
+    afiseazaSplash.value = false
+  }, 1400)
+})
 
 const router = useRouter()
 const utilizatorStore = useUtilizatorStore()
@@ -146,59 +85,61 @@ async function autentificare() {
 <style scoped>
 .autentificare-container {
   display: grid;
-  grid-template-columns: 20% 80%;
+  grid-template-columns: 280px 1fr;
   height: 100vh;
   width: 100vw;
-  position: fixed;
-  top: 0;
-  left: 0;
-  overflow: hidden;
 }
 
 .autentificare-stanga {
-  background-color: #2d7d46;
+  background: linear-gradient(160deg, #0047AB, #00357f);
   display: flex;
-  flex-direction: column;
   justify-content: center;
-  align-items: flex-start;
-  padding: 4rem;
+  align-items: center;
   color: white;
-  border-radius: 16px;
+  border-radius: 0 18px 18px 0;
   overflow: hidden;
+  position: relative;
 }
 
 .logo {
-  width: 56px;
-  height: 56px;
+  width: 76px;
+  height: 76px;
   background: white;
-  border-radius: 12px;
+  border-radius: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 22px;
-  font-weight: 700;
-  color: #2d7d46;
-  margin-bottom: 2.5rem;
+  font-size: 34px;
+  font-weight: 800;
+  color: #0047AB;
+  position: relative;
+  flex-shrink: 0;
 }
 
-.caracteristici {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-}
-
-.caracteristica {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-size: 1.1rem;
-  opacity: 0.9;
-}
-
-.icon {
-  font-size: 1.5rem;
+.login-logo {
+  width: 76px;
+  height: 76px;
+  background: white;
+  color: #0047AB;
+  border-radius: 22px;
   display: flex;
   align-items: center;
+  justify-content: center;
+  font-size: 34px;
+  font-weight: 800;
+}
+
+
+@keyframes ripple {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
 }
 
 .autentificare-dreapta {
@@ -220,7 +161,7 @@ async function autentificare() {
 }
 
 h2 {
-  color: #2d7d46;
+  color: #0047AB;
   font-size: 1.8rem;
   margin-bottom: 0.3rem;
 }
@@ -255,13 +196,96 @@ h2 {
 }
 
 .camp input:focus {
-  border-color: #2d7d46;
+  border-color: #0047AB;
+}
+
+.splash-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: #0047AB;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.splash-brand {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.splash-logo {
+  width: 76px;
+  height: 76px;
+  background: white;
+  color: #0047AB;
+  border-radius: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 34px;
+  font-weight: 800;
+  position: relative;
+}
+
+.splash-logo::before,
+.splash-logo::after {
+  content: "";
+  position: absolute;
+  inset: -16px;
+  border-radius: 32px;
+  border: 2px solid rgba(255, 255, 255, 0.45);
+  animation: ripple 1.7s ease-out infinite;
+}
+
+.splash-logo::after {
+  animation-delay: 0.55s;
+}
+
+.splash-text {
+  font-size: 2.2rem;
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+@keyframes ripple {
+  0% {
+    transform: scale(0.9);
+    opacity: 0.8;
+  }
+
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
+@media (max-width: 768px) {
+  .autentificare-container {
+    grid-template-columns: 1fr;
+  }
+
+  .autentificare-stanga {
+    display: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .splash-brand {
+    flex-direction: column;
+  }
+
+  .splash-text {
+    font-size: 2rem;
+  }
 }
 
 button {
   width: 100%;
   padding: 0.85rem;
-  background-color: #2d7d46;
+  background-color: #0047AB;
   color: white;
   border: none;
   border-radius: 8px;
@@ -273,7 +297,7 @@ button {
 }
 
 button:hover {
-  background-color: #245f37;
+  background-color: #00357f;
 }
 
 button:disabled {
