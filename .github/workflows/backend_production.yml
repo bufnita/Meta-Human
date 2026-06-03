@@ -1,0 +1,44 @@
+name: Backend PRODUCTION
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: production
+
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Publish ASP.NET Core
+        run: dotnet publish -c Release -o ./publish
+
+      - name: Create target directory
+        run: |
+          ssh root@10.10.10.210 "mkdir -p /opt/metahuman-backend"
+
+      - name: Deploy files
+        run: |
+          rsync -a --delete \
+            ./publish/ \
+            root@10.10.10.210:/opt/metahuman-backend/
+
+      - name: Fix permissions
+        run: |
+          ssh root@10.10.10.210 \
+            "chown -R metahuman:metahuman /opt/metahuman-backend"
+
+      - name: Restart backend
+        run: |
+          ssh root@10.10.10.210 \
+            "systemctl restart metahuman-backend"
+
+      - name: Show service status
+        run: |
+          ssh root@10.10.10.210 \
+            "systemctl status metahuman-backend --no-pager"
