@@ -443,22 +443,26 @@ h2 {
 
 .grid-info {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 0.5rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem 1.5rem;
 }
 
 .rand-info {
   display: flex;
-  gap: 0.75rem;
-  padding: 0.4rem 0;
-  border-bottom: 1px solid #f0f4f8;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background-color: #f8fbff;
 }
 
 .eticheta {
-  font-weight: 600;
+  font-weight: 700;
   color: #0047AB;
-  min-width: 140px;
-  font-size: 0.9rem;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .sub-formular {
