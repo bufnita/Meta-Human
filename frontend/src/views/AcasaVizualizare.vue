@@ -144,11 +144,6 @@ import { useUtilizatorStore } from '../stores/utilizator'
 
 const router = useRouter()
 const utilizatorStore = useUtilizatorStore()
-
-function deconectare() {
-  utilizatorStore.deconectare()
-  router.push('/autentificare')
-}
 </script>
 
 <style scoped>
@@ -173,10 +168,6 @@ h1 {
   margin-bottom: 0.3rem;
 }
 
-.email {
-  color: #0047AB;
-}
-
 .carduri {
   display: flex;
   gap: 1.5rem;
@@ -193,7 +184,7 @@ h1 {
   transition:
     transform 0.2s,
     box-shadow 0.2s;
-  border-top: 4px solid #0047AB;
+  border-top: 4px solid #0047ab;
 }
 
 .card:hover {
@@ -202,7 +193,7 @@ h1 {
 }
 
 .card-icon {
-  color: #0047AB;
+  color: #0047ab;
   margin-bottom: 1rem;
 }
 
@@ -215,24 +206,5 @@ h1 {
 .card p {
   font-size: 0.9rem;
   color: #718096;
-}
-
-.btn-deconectare {
-  padding: 0.5rem 1.2rem;
-  background-color: white;
-  color: #0047AB;
-  border: 2px solid #0047AB;
-  border-radius: 8px;
-  font-size: 0.9rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition:
-    background-color 0.2s,
-    color 0.2s;
-}
-
-.btn-deconectare:hover {
-  background-color: #0047AB;
-  color: white;
 }
 </style>
