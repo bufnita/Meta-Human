@@ -1,57 +1,12 @@
 <template>
   <div class="alarme">
-    <div class="antet">
+    <div class="header">
       <h1>Alerte</h1>
-      <div class="filtre">
-        <button
-          :class="filtru === 'toate' ? 'btn-primar' : 'btn-contur'"
-          @click="schimbaFiltru('toate')"
-        >
-          Toate
-        </button>
-        <button
-          :class="filtru === 'active' ? 'btn-primar' : 'btn-contur'"
-          @click="schimbaFiltru('active')"
-        >
-          Active
-        </button>
-      </div>
     </div>
 
-    <div v-if="alarmeStore.incarcare">Se încarcă...</div>
-    <div v-if="alarmeStore.eroare" class="eroare">{{ alarmeStore.eroare }}</div>
-
-    <table v-if="alarmeAfisate.length > 0">
-      <thead>
-        <tr>
-          <th>Pacient</th>
-          <th>Parametru</th>
-          <th>Mesaj</th>
-          <th>Valoare</th>
-          <th>Stare</th>
-          <th>Data</th>
-          <th>Acțiuni</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr v-for="alerta in alarmeAfisate" :key="alerta.idAlerta">
-          <td data-label="Pacient">{{ alerta.pacientNume }} {{ alerta.pacientPrenume }}</td>
-          <td data-label="Parametru">{{ alerta.parametruAsociat }}</td>
-          <td data-label="Mesaj">{{ alerta.mesaj }}</td>
-          <td data-label="Valoare">{{ alerta.valoareConstatata }}</td>
-          <td data-label="Stare">{{ alerta.stare }}</td>
-          <td data-label="Data">{{ new Date(alerta.dataOra).toLocaleString('ro-RO') }}</td>
-          <td class="td-actiuni">
-            <template v-if="alerta.stare === 'Activă'">
-              <button class="btn-contur" @click="rezolva(alerta.idAlerta)">Rezolvă</button>
-              <button class="btn-contur-rosu" @click="ignora(alerta.idAlerta)">Ignoră</button>
-            </template>
-            <span v-else>-</span>
-          </td>
-        </tr>
-      </tbody>
-    </table>
-    <p v-else-if="!alarmeStore.incarcare">Nu există alerte.</p>
+    <div class="card">
+      <p>Nu există alerte înregistrate.</p>
+    </div>
   </div>
 </template>
 

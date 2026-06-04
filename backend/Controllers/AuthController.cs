@@ -50,6 +50,7 @@ public class AuthController : ControllerBase
 
         string nume = "";
         string prenume = "";
+		int? idPacient = null;
 
         switch (rol)
         {
@@ -81,6 +82,7 @@ public class AuthController : ControllerBase
                 {
                     nume = pacient.Nume;
                     prenume = pacient.Prenume;
+					idPacient = pacient.IdPacient;
                 }
 
                 break;
@@ -96,6 +98,7 @@ public class AuthController : ControllerBase
                 Rol = rol.ToDbValue(),
                 Nume = nume,
                 Prenume = prenume,
+				IdPacient = idPacient,
                 Token = _jwtService.GenereazaToken(utilizator)
             }
         );

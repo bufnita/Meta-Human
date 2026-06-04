@@ -1,13 +1,74 @@
 <template>
   <div class="acasa">
     <div class="header">
-      <div>
-        <h1>Bun venit</h1>
-      </div>
-      <button class="btn-deconectare" @click="deconectare">Deconectare</button>
+      <h1>Bun venit</h1>
     </div>
 
-    <div class="carduri">
+    <div v-if="utilizatorStore.estePacient" class="carduri">
+      <div class="card" @click="router.push('/monitorizare')">
+        <div class="card-icon">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="28"
+            height="28"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="1.5"
+          >
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3 12h3l2-5 4 10 3-7 2 2h4" />
+          </svg>
+        </div>
+        <h2>Monitorizare</h2>
+        <p>Vizualizează datele primite de la dispozitiv</p>
+      </div>
+
+      <div class="card" @click="router.push('/alarme')">
+        <div class="card-icon">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="28"
+            height="28"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="1.5"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M14.857 17.082a23.848 23.848 0 005.454-1.31A8.967 8.967 0 0118 9.75v-.7V9A6 6 0 006 9v.75a8.967 8.967 0 01-2.312 6.022c1.733.64 3.56 1.085 5.455 1.31m5.714 0a24.255 24.255 0 01-5.714 0m5.714 0a3 3 0 11-5.714 0"
+            />
+          </svg>
+        </div>
+        <h2>Alerte</h2>
+        <p>Vizualizează alertele active</p>
+      </div>
+
+      <div class="card" @click="router.push('/recomandari')">
+        <div class="card-icon">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="28"
+            height="28"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="1.5"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+        </div>
+        <h2>Recomandări</h2>
+        <p>Vizualizează recomandările primite</p>
+      </div>
+    </div>
+
+    <div v-else class="carduri">
       <div class="card" @click="router.push('/pacienti')">
         <div class="card-icon">
           <svg

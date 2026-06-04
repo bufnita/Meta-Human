@@ -15,12 +15,41 @@ const router = createRouter({
       component: () => import('../views/AcasaVizualizare.vue'),
       meta: { necesitaAutentificare: true },
     },
+	
+	{
+  path: '/monitorizare',
+  name: 'monitorizare',
+  component: () => import('../views/MonitorizareVizualizare.vue'),
+  meta: { necesitaAutentificare: true },
+},
+{
+  path: '/recomandari',
+  name: 'recomandari',
+  component: () => import('../views/RecomandariVizualizare.vue'),
+  meta: { necesitaAutentificare: true },
+},
+	
     {
       path: '/pacienti',
       name: 'pacienti',
       component: () => import('../views/PacientiVizualizare.vue'),
       meta: { necesitaAutentificare: true },
     },
+	
+	{
+  path: '/monitorizare',
+  name: 'monitorizare',
+  component: () => import('../views/MonitorizareVizualizare.vue'),
+  meta: { necesitaAutentificare: true },
+},
+
+{
+  path: '/recomandari',
+  name: 'recomandari',
+  component: () => import('../views/RecomandariVizualizare.vue'),
+  meta: { necesitaAutentificare: true },
+},
+	
     {
       path: '/pacienti/:id',
       name: 'detalii-pacient',

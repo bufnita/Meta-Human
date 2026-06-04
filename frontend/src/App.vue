@@ -3,20 +3,43 @@
     <nav v-if="utilizatorStore.esteAutentificat" ref="navRef">
       <div class="nav-stanga">
         <div class="nav-logo">M</div>
-        <div class="nav-linkuri" :class="{ deschis: meniuDeschis }">
-          <router-link to="/" @click="meniuDeschis = false">Acasă</router-link>
-          <router-link to="/pacienti" @click="meniuDeschis = false">Pacienți</router-link>
-          <router-link
-            v-if="utilizatorStore.esteMedic || utilizatorStore.esteAdmin"
-            to="/alarme"
-            @click="meniuDeschis = false"
-          >Alerte</router-link>
-          <router-link
-            v-if="utilizatorStore.esteAdmin"
-            to="/medici"
-            @click="meniuDeschis = false"
-          >Medici</router-link>
-        </div>
+<div class="nav-linkuri" :class="{ deschis: meniuDeschis }">
+  <router-link to="/" @click="meniuDeschis = false">
+    Acasă
+  </router-link>
+
+<router-link
+  v-if="utilizatorStore.estePacient"
+  to="/monitorizare"
+  @click="meniuDeschis = false"
+>
+  Monitorizare
+</router-link>
+
+<router-link
+  v-if="utilizatorStore.estePacient || utilizatorStore.esteMedic || utilizatorStore.esteAdmin"
+  to="/alarme"
+  @click="meniuDeschis = false"
+>
+  Alerte
+</router-link>
+
+<router-link
+  v-if="utilizatorStore.estePacient"
+  to="/recomandari"
+  @click="meniuDeschis = false"
+>
+  Recomandări
+</router-link>
+
+  <router-link
+    v-if="utilizatorStore.esteAdmin"
+    to="/medici"
+    @click="meniuDeschis = false"
+  >
+    Medici
+  </router-link>
+</div>
       </div>
       <div class="nav-dreapta">
         <span class="nav-info">{{ utilizatorStore.utilizator?.rol }}</span>

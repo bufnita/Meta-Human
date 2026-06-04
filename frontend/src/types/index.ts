@@ -5,6 +5,7 @@ export interface Utilizator {
   rol: string
   nume: string
   prenume: string
+  idPacient?: number | null
 }
 
 export interface CerereLogin {
