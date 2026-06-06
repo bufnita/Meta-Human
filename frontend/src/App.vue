@@ -7,7 +7,7 @@
           <router-link to="/" @click="meniuDeschis = false"> Acasă </router-link>
 
           <router-link
-            v-if="utilizatorStore.estePacient"
+            v-if="utilizatorStore.estePacient || utilizatorStore.esteAdmin"
             to="/monitorizare"
             @click="meniuDeschis = false"
           >
@@ -25,11 +25,19 @@
           </router-link>
 
           <router-link
-            v-if="utilizatorStore.estePacient"
+            v-if="utilizatorStore.estePacient || utilizatorStore.esteAdmin"
             to="/recomandari"
             @click="meniuDeschis = false"
           >
             Recomandări
+          </router-link>
+
+          <router-link
+            v-if="utilizatorStore.esteMedic || utilizatorStore.esteAdmin"
+            to="/pacienti"
+            @click="meniuDeschis = false"
+          >
+            Pacienti
           </router-link>
 
           <router-link v-if="utilizatorStore.esteAdmin" to="/medici" @click="meniuDeschis = false">

@@ -1,5 +1,5 @@
 import api from './axios'
-import type { Alerta, PacientDetaliu, Recomandare } from '../types'
+import type { Alerta, IstoricMasuratori, PacientDetaliu, Recomandare } from '../types'
 
 export const pacientApi = {
   async obtineProfil(): Promise<PacientDetaliu> {
@@ -9,6 +9,11 @@ export const pacientApi = {
 
   async obtineAlerte(): Promise<Alerta[]> {
     const response = await api.get('/pacient/alerte')
+    return response.data
+  },
+
+  async obtineIstoric(ultimele = 100): Promise<IstoricMasuratori> {
+    const response = await api.get('/masuratori/istoric', { params: { ultimele } })
     return response.data
   },
 

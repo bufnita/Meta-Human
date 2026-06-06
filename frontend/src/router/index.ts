@@ -15,58 +15,41 @@ const router = createRouter({
       component: () => import('../views/AcasaVizualizare.vue'),
       meta: { necesitaAutentificare: true },
     },
-	
-	{
-  path: '/monitorizare',
-  name: 'monitorizare',
-  component: () => import('../views/MonitorizareVizualizare.vue'),
-  meta: { necesitaAutentificare: true },
-},
-{
-  path: '/recomandari',
-  name: 'recomandari',
-  component: () => import('../views/RecomandariVizualizare.vue'),
-  meta: { necesitaAutentificare: true },
-},
-	
+    {
+      path: '/monitorizare',
+      name: 'monitorizare',
+      component: () => import('../views/MonitorizareVizualizare.vue'),
+      meta: { necesitaAutentificare: true, roluri: ['Pacient', 'Admin'] },
+    },
+    {
+      path: '/recomandari',
+      name: 'recomandari',
+      component: () => import('../views/RecomandariVizualizare.vue'),
+      meta: { necesitaAutentificare: true, roluri: ['Pacient', 'Admin'] },
+    },
     {
       path: '/pacienti',
       name: 'pacienti',
       component: () => import('../views/PacientiVizualizare.vue'),
-      meta: { necesitaAutentificare: true },
+      meta: { necesitaAutentificare: true, roluri: ['Medic', 'Admin'] },
     },
-	
-	{
-  path: '/monitorizare',
-  name: 'monitorizare',
-  component: () => import('../views/MonitorizareVizualizare.vue'),
-  meta: { necesitaAutentificare: true },
-},
-
-{
-  path: '/recomandari',
-  name: 'recomandari',
-  component: () => import('../views/RecomandariVizualizare.vue'),
-  meta: { necesitaAutentificare: true },
-},
-	
     {
       path: '/pacienti/:id',
       name: 'detalii-pacient',
       component: () => import('../views/PacientDetaliiVizualizare.vue'),
-      meta: { necesitaAutentificare: true },
+      meta: { necesitaAutentificare: true, roluri: ['Medic', 'Admin'] },
     },
     {
       path: '/medici',
       name: 'medici',
       component: () => import('../views/MediciVizualizare.vue'),
-      meta: { necesitaAutentificare: true, necesitaAdmin: true },
+      meta: { necesitaAutentificare: true, roluri: ['Admin'] },
     },
     {
       path: '/alarme',
       name: 'alarme',
       component: () => import('../views/AlarmeVizualizare.vue'),
-      meta: { necesitaAutentificare: true },
+      meta: { necesitaAutentificare: true, roluri: ['Pacient', 'Medic', 'Admin'] },
     },
   ],
 })
@@ -79,7 +62,8 @@ router.beforeEach((to) => {
     return { name: 'autentificare' }
   }
 
-  if (to.meta.necesitaAdmin && !utilizatorStore.esteAdmin) {
+  const roluri = to.meta.roluri as string[] | undefined
+  if (roluri?.length && !roluri.includes(utilizatorStore.utilizator?.rol ?? '')) {
     return { name: 'acasa' }
   }
 })

@@ -1,67 +1,118 @@
 <template>
   <div class="monitorizare">
     <div class="header">
-      <h1>Monitorizare</h1>
+      <div>
+        <h1>Monitorizare</h1>
+        <p>Ultimele masuratori primite de la dispozitiv</p>
+      </div>
+      <select v-model.number="ultimele" @change="incarcaIstoric">
+        <option :value="10">Ultimele 10</option>
+        <option :value="50">Ultimele 50</option>
+        <option :value="100">Ultimele 100</option>
+      </select>
     </div>
 
+    <div v-if="incarcare" class="card">Se incarca...</div>
+    <div v-if="eroare" class="eroare">{{ eroare }}</div>
+
     <div class="carduri-monitorizare">
-      <div class="card-masurare">
-        <h2>Temperatură</h2>
+      <div v-for="card in carduriMasuratori" :key="card.cheie" class="card-masurare">
+        <h2>{{ card.titlu }}</h2>
         <div class="valoare">
-          36.7 <span>°C</span>
+          {{ card.masuratoare?.valoare ?? '-' }}
+          <span>{{ card.masuratoare?.unitateMasura ?? card.unitateFallback }}</span>
         </div>
-      </div>
-
-      <div class="card-masurare">
-        <h2>ECG</h2>
-        <div class="valoare">
-          512 <span>raw</span>
-        </div>
-      </div>
-
-      <div class="card-masurare">
-        <h2>Puls</h2>
-        <div class="valoare">
-          - <span>bpm</span>
-        </div>
+        <p v-if="card.masuratoare">
+          {{ new Date(card.masuratoare.dataOra).toLocaleString('ro-RO') }}
+        </p>
+        <p v-else>Nu exista masuratori recente.</p>
       </div>
     </div>
 
     <div class="card">
       <div class="antet-card">
-        <h2>Istoric măsurători</h2>
+        <h2>Istoric masuratori</h2>
       </div>
 
-      <table>
+      <table v-if="istoric.length">
         <thead>
           <tr>
             <th>Parametru</th>
             <th>Valoare</th>
             <th>Unitate</th>
-            <th>Data și ora</th>
+            <th>Data si ora</th>
             <th>Stare</th>
           </tr>
         </thead>
         <tbody>
-          <tr>
-            <td>temperatura</td>
-            <td>36.7</td>
-            <td>°C</td>
-            <td>03.06.2026, 20:15</td>
-            <td>Normal</td>
-          </tr>
-          <tr>
-            <td>ecg</td>
-            <td>512</td>
-            <td>raw</td>
-            <td>03.06.2026, 20:15</td>
-            <td>Preluat</td>
+          <tr v-for="masuratoare in istoric" :key="masuratoare.idMasuratoare">
+            <td data-label="Parametru">{{ masuratoare.tipParametru }}</td>
+            <td data-label="Valoare">{{ masuratoare.valoare }}</td>
+            <td data-label="Unitate">{{ masuratoare.unitateMasura }}</td>
+            <td data-label="Data">{{ new Date(masuratoare.dataOra).toLocaleString('ro-RO') }}</td>
+            <td data-label="Stare">{{ masuratoare.stare }}</td>
           </tr>
         </tbody>
       </table>
+      <p v-else-if="!incarcare">Nu exista masuratori inregistrate.</p>
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+import { computed, onMounted, ref } from 'vue'
+import { pacientApi } from '../api/pacient'
+import type { Masuratoare } from '../types'
+
+const istoric = ref<Masuratoare[]>([])
+const incarcare = ref(false)
+const eroare = ref<string | null>(null)
+const ultimele = ref(50)
+
+onMounted(() => {
+  incarcaIstoric()
+})
+
+async function incarcaIstoric() {
+  incarcare.value = true
+  eroare.value = null
+  try {
+    const raspuns = await pacientApi.obtineIstoric(ultimele.value)
+    istoric.value = raspuns.masuratori
+  } catch (err: unknown) {
+    eroare.value =
+      (err as { response?: { data?: { mesaj?: string } } }).response?.data?.mesaj ||
+      'Eroare la incarcarea masuratorilor'
+  } finally {
+    incarcare.value = false
+  }
+}
+
+function ultimaPentru(tip: string) {
+  return istoric.value.find((m) => m.tipParametru.toLowerCase() === tip)
+}
+
+const carduriMasuratori = computed(() => [
+  {
+    cheie: 'temperatura',
+    titlu: 'Temperatura',
+    unitateFallback: 'C',
+    masuratoare: ultimaPentru('temperatura'),
+  },
+  {
+    cheie: 'ecg',
+    titlu: 'ECG',
+    unitateFallback: 'raw',
+    masuratoare: ultimaPentru('ecg'),
+  },
+  {
+    cheie: 'puls',
+    titlu: 'Puls',
+    unitateFallback: 'bpm',
+    masuratoare: ultimaPentru('puls'),
+  },
+])
+</script>
 
 <style scoped>
 .monitorizare {
@@ -71,6 +122,10 @@
 }
 
 .header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
   margin-bottom: 2rem;
   padding-bottom: 1.5rem;
   border-bottom: 2px solid #e2e8f0;
@@ -78,6 +133,19 @@
 
 h1 {
   font-size: 1.8rem;
+  color: #2d3748;
+}
+
+.header p {
+  margin-top: 0.35rem;
+  color: #718096;
+}
+
+select {
+  padding: 0.55rem 0.75rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  background: white;
   color: #2d3748;
 }
 
@@ -96,10 +164,7 @@ h1 {
   border-top: 4px solid #0047AB;
 }
 
-.card-masurare {
-  padding: 2rem;
-}
-
+.card-masurare,
 .card {
   padding: 2rem;
 }
@@ -124,7 +189,8 @@ h1 {
   margin-left: 0.3rem;
 }
 
-.card-masurare p {
+.card-masurare p,
+.card p {
   color: #718096;
   font-size: 0.9rem;
 }
@@ -153,18 +219,61 @@ td {
   border-bottom: 1px solid #e2e8f0;
 }
 
+tbody tr:nth-child(even) td {
+  background-color: #f7f9fb;
+}
+
+.eroare {
+  background-color: #fff5f5;
+  color: #c53030;
+  border: 1px solid #feb2b2;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+}
+
 @media (max-width: 768px) {
   .monitorizare {
     padding: 1.5rem 1rem;
+  }
+
+  .header {
+    align-items: flex-start;
+    flex-direction: column;
   }
 
   .carduri-monitorizare {
     grid-template-columns: 1fr;
   }
 
-  table {
+  table thead {
+    display: none;
+  }
+
+  table,
+  tbody,
+  tr,
+  td {
     display: block;
-    overflow-x: auto;
+    width: 100%;
+  }
+
+  tbody tr {
+    border-top: 3px solid #0047AB;
+    padding: 0.75rem 0;
+  }
+
+  td {
+    display: flex;
+    justify-content: space-between;
+    gap: 1rem;
+    background: transparent !important;
+  }
+
+  td::before {
+    content: attr(data-label);
+    font-weight: 700;
+    color: #0047AB;
   }
 }
 </style>
