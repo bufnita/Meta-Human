@@ -37,6 +37,21 @@ export const useAlarmeStore = defineStore('alarme', () => {
     }
   }
 
+  async function incarcaPacient() {
+    incarcare.value = true
+    eroare.value = null
+    try {
+      alarme.value = await alarmeApi.obtinePacient()
+      alarmeActive.value = alarme.value.filter((a) => a.stare === 'Activa' || a.stare === 'ActivÄƒ')
+    } catch (err: unknown) {
+      eroare.value =
+        (err as { response?: { data?: { mesaj?: string } } }).response?.data?.mesaj ||
+        'Eroare la incarcarea alertelor pacientului'
+    } finally {
+      incarcare.value = false
+    }
+  }
+
   async function rezolva(id: number) {
     eroare.value = null
     try {
@@ -72,6 +87,7 @@ export const useAlarmeStore = defineStore('alarme', () => {
     eroare,
     incarcaToate,
     incarcaActive,
+    incarcaPacient,
     rezolva,
     ignora,
   }

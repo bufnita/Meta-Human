@@ -12,6 +12,7 @@ import RNBluetoothClassic, {
   BluetoothDevice,
 } from 'react-native-bluetooth-classic';
 import { trimiteMarsuratoare } from '../api/masuratori';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function EcranPrincipal() {
   const [conectat, setConectat] = useState(false);
@@ -19,10 +20,19 @@ export default function EcranPrincipal() {
   const [ecg, setEcg] = useState<number | null>(null);
   const [dispozitiv, setDispozitiv] = useState<BluetoothDevice | null>(null);
   const [seTrimiite, setSeTrimiite] = useState(false);
+  const [idPacient, setIdPacient] = useState<number | null>(null);
 
   useEffect(() => {
     cerePermisiuni();
+    incarcaIdPacient();
   }, []);
+
+  const incarcaIdPacient = async () => {
+    const idSalvat = await AsyncStorage.getItem('idPacient');
+    if (idSalvat) {
+      setIdPacient(Number(idSalvat));
+    }
+  };
 
   const cerePermisiuni = async () => {
     if (Platform.OS === 'android') {
@@ -74,12 +84,13 @@ export default function EcranPrincipal() {
   };
 
   const trimiteLaBackend = async (date: any) => {
+    if (!idPacient) return;
     if (seTrimiite) return;
     setSeTrimiite(true);
     try {
       if (date.temperatura !== undefined) {
         await trimiteMarsuratoare(
-          1,
+          idPacient,
           'temperatura',
           date.temperatura,
           '°C',
@@ -87,7 +98,7 @@ export default function EcranPrincipal() {
         );
       }
       if (date.ecg !== undefined) {
-        await trimiteMarsuratoare(1, 'ecg', date.ecg, 'mV', 'bluetooth');
+        await trimiteMarsuratoare(idPacient, 'ecg', date.ecg, 'mV', 'bluetooth');
       }
     } catch {
       // eroare silentioasa la trimitere

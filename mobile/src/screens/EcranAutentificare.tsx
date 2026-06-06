@@ -25,6 +25,9 @@ export default function EcranAutentificare({ navigation }: any) {
     try {
       const date = await autentificare(email, parola);
       await AsyncStorage.setItem('token', date.token);
+      if (date.idPacient) {
+        await AsyncStorage.setItem('idPacient', String(date.idPacient));
+      }
       navigation.replace('Panou');
     } catch {
       Alert.alert('Eroare', 'Email sau parolă incorectă.');

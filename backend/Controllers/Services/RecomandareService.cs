@@ -64,6 +64,21 @@ public class RecomandareService
         return recomandari.Select(MapLaRaspuns).ToList();
     }
 
+    public async Task<IReadOnlyList<RaspunsRecomandareDTO>> ObtinePentruPacientCurentAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var idPacient = await _identitateClinicala.ObtineIdPacientCurentAsync(cancellationToken);
+        if (!idPacient.HasValue)
+            throw new AccesInterzisException("Profilul de pacient nu a fost gasit.");
+
+        var recomandari = await _context.Recomandari
+            .Where(r => r.IdPacient == idPacient.Value)
+            .OrderByDescending(r => r.DataInceput)
+            .ToListAsync(cancellationToken);
+
+        return recomandari.Select(MapLaRaspuns).ToList();
+    }
+
     private async Task<Pacient> ObtinePacientCuAccesAsync(
         int idPacient,
         CancellationToken cancellationToken)

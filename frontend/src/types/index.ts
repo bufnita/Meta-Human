@@ -82,6 +82,9 @@ export interface CererePacient {
   parola?: string
   profesie?: string
   locMunca?: string
+  istoricMedical?: string
+  alergii?: string
+  consultatiiCardiologice?: string
 }
 
 // ── Măsurători ─────────────────────────────────────────────────────

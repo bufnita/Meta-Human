@@ -61,6 +61,22 @@ public class PacientService
         return MapLaDetaliu(pacient);
     }
 
+    public async Task<RaspunsPacientDetaliuDTO> ObtineProfilCurentAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var idPacient = await _identitateClinicala.ObtineIdPacientCurentAsync(cancellationToken);
+        if (!idPacient.HasValue)
+            throw new AccesInterzisException("Profilul de pacient nu a fost gasit.");
+
+        var pacient = await _context.Pacienti
+            .FirstOrDefaultAsync(p => p.IdPacient == idPacient.Value, cancellationToken);
+
+        if (pacient == null)
+            throw new AccesInterzisException("Profilul de pacient nu a fost gasit.");
+
+        return MapLaDetaliu(pacient);
+    }
+
     public async Task<RaspunsPacientDTO> CreeazaAsync(
         CererePacientDTO cerere,
         CancellationToken cancellationToken = default)
@@ -101,6 +117,9 @@ public class PacientService
             Email = email,
             Profesie = cerere.Profesie?.Trim(),
             LocMunca = cerere.LocMunca?.Trim(),
+            IstoricMedical = cerere.IstoricMedical?.Trim(),
+            Alergii = cerere.Alergii?.Trim(),
+            ConsultatiiCardiologice = cerere.ConsultatiiCardiologice?.Trim(),
             Activ = true
         };
 
@@ -136,6 +155,9 @@ public class PacientService
         pacient.Email = cerere.Email.Trim();
         pacient.Profesie = cerere.Profesie?.Trim();
         pacient.LocMunca = cerere.LocMunca?.Trim();
+        pacient.IstoricMedical = cerere.IstoricMedical?.Trim();
+        pacient.Alergii = cerere.Alergii?.Trim();
+        pacient.ConsultatiiCardiologice = cerere.ConsultatiiCardiologice?.Trim();
 
         if (pacient.IdUtilizator.HasValue)
         {

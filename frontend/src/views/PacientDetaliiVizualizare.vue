@@ -8,6 +8,13 @@
           {{ pacientiStore.pacientSelectat.activ ? 'Activ' : 'Inactiv' }}
         </span>
       </h1>
+      <button
+        v-if="pacientiStore.pacientSelectat"
+        class="btn-contur"
+        @click="comutaEditare"
+      >
+        {{ editareActiva ? 'Renunta la editare' : 'Editeaza date pacient' }}
+      </button>
     </div>
 
     <div v-if="pacientiStore.incarcare" class="incarcare">Se încarcă...</div>
@@ -17,6 +24,76 @@
       <!-- Informații personale -->
       <div class="card">
         <h2>Informații Personale</h2>
+        <form v-if="editareActiva" class="sub-formular" @submit.prevent="salveazaPacient">
+          <div class="rand-campuri">
+            <div class="camp">
+              <label>Nume *</label>
+              <input v-model="formularPacient.nume" required />
+            </div>
+            <div class="camp">
+              <label>Prenume *</label>
+              <input v-model="formularPacient.prenume" required />
+            </div>
+          </div>
+          <div class="rand-campuri">
+            <div class="camp">
+              <label>Varsta *</label>
+              <input v-model.number="formularPacient.varsta" type="number" min="1" required />
+            </div>
+            <div class="camp">
+              <label>CNP</label>
+              <input v-model="formularPacient.cnp" maxlength="13" />
+            </div>
+          </div>
+          <div class="rand-campuri">
+            <div class="camp">
+              <label>Email *</label>
+              <input v-model="formularPacient.email" type="email" required />
+            </div>
+            <div class="camp">
+              <label>Telefon</label>
+              <input v-model="formularPacient.telefon" />
+            </div>
+          </div>
+          <div class="rand-campuri">
+            <div class="camp">
+              <label>Adresa</label>
+              <input v-model="formularPacient.adresa" />
+            </div>
+            <div class="camp">
+              <label>Profesie</label>
+              <input v-model="formularPacient.profesie" />
+            </div>
+          </div>
+          <div class="rand-campuri">
+            <div class="camp">
+              <label>Loc de munca</label>
+              <input v-model="formularPacient.locMunca" />
+            </div>
+            <div class="camp">
+              <label>ID Medic</label>
+              <input v-model.number="formularPacient.idMedic" type="number" />
+            </div>
+          </div>
+          <div class="camp">
+            <label>Istoric medical</label>
+            <textarea v-model="formularPacient.istoricMedical"></textarea>
+          </div>
+          <div class="camp">
+            <label>Alergii</label>
+            <textarea v-model="formularPacient.alergii"></textarea>
+          </div>
+          <div class="camp">
+            <label>Consultatii cardiologice</label>
+            <textarea v-model="formularPacient.consultatiiCardiologice"></textarea>
+          </div>
+          <div class="butoane-formular">
+            <button type="submit" class="btn-primar" :disabled="pacientiStore.incarcare">
+              Salveaza modificarile
+            </button>
+            <button type="button" class="btn-contur" @click="comutaEditare">Anuleaza</button>
+          </div>
+        </form>
         <div class="grid-info">
           <div class="rand-info">
             <span class="eticheta">CNP</span>
@@ -276,6 +353,24 @@ const pacientId = Number(route.params.id)
 const numarMasuratori = ref(10)
 const arataFormularPrag = ref(false)
 const arataFormularRecomandare = ref(false)
+const editareActiva = ref(false)
+
+const formularPacientGol = () => ({
+  idMedic: undefined as number | undefined,
+  nume: '',
+  prenume: '',
+  varsta: 1,
+  cnp: '',
+  adresa: '',
+  telefon: '',
+  email: '',
+  profesie: '',
+  locMunca: '',
+  istoricMedical: '',
+  alergii: '',
+  consultatiiCardiologice: '',
+})
+const formularPacient = ref(formularPacientGol())
 
 const formularPragGol = () => ({
   tipParametru: '',
@@ -297,11 +392,58 @@ const formularRec = ref(formularRecGol())
 
 onMounted(async () => {
   await pacientiStore.incarcaDetaliu(pacientId)
+  pregatesteFormularPacient()
   await pacientiStore.incarcaIstoric(pacientId, numarMasuratori.value)
   await pacientiStore.incarcaAlertePatient(pacientId)
   await pacientiStore.incarcaPraguri(pacientId)
   await pacientiStore.incarcaRecomandari(pacientId)
 })
+
+function pregatesteFormularPacient() {
+  const pacient = pacientiStore.pacientSelectat
+  if (!pacient) return
+
+  formularPacient.value = {
+    idMedic: pacient.idMedic,
+    nume: pacient.nume,
+    prenume: pacient.prenume,
+    varsta: pacient.varsta,
+    cnp: pacient.cnp || '',
+    adresa: pacient.adresa || '',
+    telefon: pacient.telefon || '',
+    email: pacient.email || '',
+    profesie: pacient.profesie || '',
+    locMunca: pacient.locMunca || '',
+    istoricMedical: pacient.istoricMedical || '',
+    alergii: pacient.alergii || '',
+    consultatiiCardiologice: pacient.consultatiiCardiologice || '',
+  }
+}
+
+function comutaEditare() {
+  editareActiva.value = !editareActiva.value
+  if (editareActiva.value) {
+    pregatesteFormularPacient()
+  }
+}
+
+async function salveazaPacient() {
+  await pacientiStore.actualizeaza(pacientId, {
+    ...formularPacient.value,
+    cnp: formularPacient.value.cnp || undefined,
+    adresa: formularPacient.value.adresa || undefined,
+    telefon: formularPacient.value.telefon || undefined,
+    profesie: formularPacient.value.profesie || undefined,
+    locMunca: formularPacient.value.locMunca || undefined,
+    istoricMedical: formularPacient.value.istoricMedical || undefined,
+    alergii: formularPacient.value.alergii || undefined,
+    consultatiiCardiologice: formularPacient.value.consultatiiCardiologice || undefined,
+  })
+  if (!pacientiStore.eroare) {
+    editareActiva.value = false
+    pregatesteFormularPacient()
+  }
+}
 
 async function reincarcaIstoric() {
   await pacientiStore.incarcaIstoric(pacientId, numarMasuratori.value)
@@ -485,7 +627,8 @@ h2 {
   color: #2d3748;
 }
 
-.camp input {
+.camp input,
+.camp textarea {
   width: 100%;
   padding: 0.55rem 0.75rem;
   border: 2px solid #e2e8f0;
@@ -494,8 +637,20 @@ h2 {
   box-sizing: border-box;
   outline: none;
   transition: border-color 0.2s;
+  font-family: inherit;
 }
-.camp input:focus { border-color: #0047AB; }
+.camp textarea {
+  min-height: 72px;
+  resize: vertical;
+}
+.camp input:focus,
+.camp textarea:focus { border-color: #0047AB; }
+
+.butoane-formular {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
 
 .camp-checkbox {
   display: flex;

@@ -74,6 +74,7 @@ export const usePacientiStore = defineStore('pacienti', () => {
       const actualizat = await pacientiApi.actualizeaza(id, cerere)
       const index = pacienti.value.findIndex((p) => p.idPacient === id)
       if (index !== -1) pacienti.value[index] = actualizat
+      pacientSelectat.value = await pacientiApi.obtineDetaliu(id)
       return actualizat
     } catch (err: unknown) {
       eroare.value =
