@@ -6,10 +6,16 @@
         <p>{{ utilizatorStore.estePacient ? 'Alertele mele medicale' : 'Alerte pacienti' }}</p>
       </div>
       <div class="filtre">
-        <button :class="filtru === 'active' ? 'btn-primar' : 'btn-contur'" @click="schimbaFiltru('active')">
+        <button
+          :class="filtru === 'active' ? 'btn-primar' : 'btn-contur'"
+          @click="schimbaFiltru('active')"
+        >
           Active
         </button>
-        <button :class="filtru === 'toate' ? 'btn-primar' : 'btn-contur'" @click="schimbaFiltru('toate')">
+        <button
+          :class="filtru === 'toate' ? 'btn-primar' : 'btn-contur'"
+          @click="schimbaFiltru('toate')"
+        >
           Toate
         </button>
       </div>
@@ -31,7 +37,11 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="alerta in alarmeAfisate" :key="alerta.idAlerta" :class="{ activa: esteActiva(alerta.stare) }">
+        <tr
+          v-for="alerta in alarmeAfisate"
+          :key="alerta.idAlerta"
+          :class="{ activa: esteActiva(alerta.stare) }"
+        >
           <td v-if="!utilizatorStore.estePacient" data-label="Pacient">
             {{ alerta.pacientNume }} {{ alerta.pacientPrenume }}
           </td>
@@ -45,10 +55,18 @@
           </td>
           <td data-label="Data">{{ new Date(alerta.dataOra).toLocaleString('ro-RO') }}</td>
           <td v-if="!utilizatorStore.estePacient" class="td-actiuni">
-            <button class="btn-contur" :disabled="!esteActiva(alerta.stare)" @click="rezolva(alerta.idAlerta)">
+            <button
+              class="btn-contur"
+              :disabled="!esteActiva(alerta.stare)"
+              @click="rezolva(alerta.idAlerta)"
+            >
               Rezolva
             </button>
-            <button class="btn-contur-rosu" :disabled="!esteActiva(alerta.stare)" @click="ignora(alerta.idAlerta)">
+            <button
+              class="btn-contur-rosu"
+              :disabled="!esteActiva(alerta.stare)"
+              @click="ignora(alerta.idAlerta)"
+            >
               Ignora
             </button>
           </td>
@@ -90,7 +108,7 @@ function schimbaFiltru(valoare: 'toate' | 'active') {
 }
 
 function esteActiva(stare: string) {
-  return stare === 'Activa' || stare === 'ActivÄƒ'
+  return stare === 'Activa' || stare === 'Activă'
 }
 
 async function rezolva(id: number) {
@@ -145,15 +163,15 @@ h1 {
 }
 
 .btn-primar {
-  background-color: #0047AB;
+  background-color: #0047ab;
   color: white;
-  border: 2px solid #0047AB;
+  border: 2px solid #0047ab;
 }
 
 .btn-contur {
   background-color: white;
-  color: #0047AB;
-  border: 2px solid #0047AB;
+  color: #0047ab;
+  border: 2px solid #0047ab;
 }
 
 .btn-contur-rosu {
@@ -172,7 +190,7 @@ button:disabled {
   padding: 1.5rem 2rem;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  border-top: 4px solid #0047AB;
+  border-top: 4px solid #0047ab;
   color: #2d3748;
 }
 
@@ -186,7 +204,7 @@ table {
 }
 
 th {
-  background-color: #0047AB;
+  background-color: #0047ab;
   color: white;
   padding: 0.9rem 0.75rem;
   text-align: left;
@@ -272,7 +290,7 @@ tr.activa td {
     padding: 1rem;
     margin-bottom: 1rem;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    border-top: 4px solid #0047AB;
+    border-top: 4px solid #0047ab;
   }
 
   td {
@@ -287,7 +305,7 @@ tr.activa td {
   td::before {
     content: attr(data-label);
     font-weight: 700;
-    color: #0047AB;
+    color: #0047ab;
   }
 }
 </style>

@@ -42,7 +42,7 @@ export const useAlarmeStore = defineStore('alarme', () => {
     eroare.value = null
     try {
       alarme.value = await alarmeApi.obtinePacient()
-      alarmeActive.value = alarme.value.filter((a) => a.stare === 'Activa' || a.stare === 'ActivÄƒ')
+      alarmeActive.value = alarme.value.filter((a) => a.stare === 'Activa' || a.stare === 'Activă')
     } catch (err: unknown) {
       eroare.value =
         (err as { response?: { data?: { mesaj?: string } } }).response?.data?.mesaj ||
