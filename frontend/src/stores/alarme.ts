@@ -46,7 +46,7 @@ export const useAlarmeStore = defineStore('alarme', () => {
     } catch (err: unknown) {
       eroare.value =
         (err as { response?: { data?: { mesaj?: string } } }).response?.data?.mesaj ||
-        'Eroare la incarcarea alertelor pacientului'
+        'Eroare la încărcarea alertelor pacientului'
     } finally {
       incarcare.value = false
     }

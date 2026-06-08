@@ -38,8 +38,8 @@ const titlu = computed(() => {
 })
 
 const subtitlu = computed(() => {
-  if (utilizatorStore.estePacient) return 'Monitorizeaza valorile, alertele si recomandarile primite.'
-  if (utilizatorStore.esteMedic) return 'Gestioneaza pacientii, pragurile, alertele si recomandarile.'
+  if (utilizatorStore.estePacient) return 'Monitorizează valorile, alertele și recomandările primite.'
+  if (utilizatorStore.esteMedic) return 'Gestionează pacienții, pragurile, alertele și recomandările.'
   if (utilizatorStore.esteAdmin) return 'Acces complet la ecranele principale ale sistemului.'
   return ''
 })
@@ -47,7 +47,7 @@ const subtitlu = computed(() => {
 const carduri = [
   {
     titlu: 'Monitorizare',
-    descriere: 'Vizualizare masuratori si istoric pacient.',
+    descriere: 'Vizualizare măsurători și istoric pacient.',
     ruta: '/monitorizare',
     initiala: 'M',
     roluri: ['Pacient', 'Admin'],
@@ -60,15 +60,15 @@ const carduri = [
     roluri: ['Pacient', 'Medic', 'Admin'],
   },
   {
-    titlu: 'Recomandari',
-    descriere: 'Indicatii medicale pentru pacient.',
+    titlu: 'Recomandări',
+    descriere: 'Indicații medicale pentru pacient.',
     ruta: '/recomandari',
     initiala: 'R',
     roluri: ['Pacient', 'Admin'],
   },
   {
-    titlu: 'Pacienti',
-    descriere: 'Lista pacienti, detalii, editare si praguri.',
+    titlu: 'Pacienți',
+    descriere: 'Listă pacienți, detalii, editare și praguri.',
     ruta: '/pacienti',
     initiala: 'P',
     roluri: ['Medic', 'Admin'],

@@ -1,11 +1,11 @@
 <template>
   <div class="recomandari">
     <div class="header">
-      <h1>Recomandari</h1>
-      <p>Indicatiile primite de la medic</p>
+      <h1>Recomandări</h1>
+      <p>Indicațiile primite de la medic</p>
     </div>
 
-    <div v-if="incarcare" class="card-recomandare">Se incarca...</div>
+    <div v-if="incarcare" class="card-recomandare">Se încarcă...</div>
     <div v-if="eroare" class="eroare">{{ eroare }}</div>
 
     <div v-if="!incarcare && recomandari.length" class="lista-recomandari">
@@ -16,17 +16,17 @@
         </div>
 
         <div class="rand-info">
-          <span>Durata zilnica</span>
+          <span>Durata zilnică</span>
           <strong>{{ rec.durataZilnica || '-' }}</strong>
         </div>
 
         <div class="rand-info">
-          <span>Data inceput</span>
+          <span>Dată început</span>
           <strong>{{ formatData(rec.dataInceput) }}</strong>
         </div>
 
         <div class="rand-info">
-          <span>Data sfarsit</span>
+          <span>Dată sfârșit</span>
           <strong>{{ rec.dataSfarsit ? formatData(rec.dataSfarsit) : '-' }}</strong>
         </div>
 
@@ -35,7 +35,7 @@
     </div>
 
     <div v-else-if="!incarcare" class="card-recomandare">
-      Nu exista recomandari inregistrate pentru contul tau.
+      Nu există recomandări înregistrate pentru contul tău.
     </div>
   </div>
 </template>
@@ -57,7 +57,7 @@ onMounted(async () => {
   } catch (err: unknown) {
     eroare.value =
       (err as { response?: { data?: { mesaj?: string } } }).response?.data?.mesaj ||
-      'Eroare la incarcarea recomandarilor'
+      'Eroare la încărcarea recomandărilor'
   } finally {
     incarcare.value = false
   }

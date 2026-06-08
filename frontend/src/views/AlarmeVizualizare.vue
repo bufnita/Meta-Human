@@ -3,7 +3,7 @@
     <div class="antet">
       <div>
         <h1>Alerte</h1>
-        <p>{{ utilizatorStore.estePacient ? 'Alertele mele medicale' : 'Alerte pacienti' }}</p>
+        <p>{{ utilizatorStore.estePacient ? 'Alertele mele medicale' : 'Alerte pacienți' }}</p>
       </div>
       <div class="filtre">
         <button
@@ -21,7 +21,7 @@
       </div>
     </div>
 
-    <div v-if="alarmeStore.incarcare" class="card">Se incarca...</div>
+    <div v-if="alarmeStore.incarcare" class="card">Se încarcă...</div>
     <div v-if="alarmeStore.eroare" class="eroare">{{ alarmeStore.eroare }}</div>
 
     <table v-if="!alarmeStore.incarcare && alarmeAfisate.length">
@@ -33,7 +33,7 @@
           <th>Mesaj</th>
           <th>Stare</th>
           <th>Data</th>
-          <th v-if="!utilizatorStore.estePacient">Actiuni</th>
+          <th v-if="!utilizatorStore.estePacient">Acțiuni</th>
         </tr>
       </thead>
       <tbody>
@@ -60,14 +60,14 @@
               :disabled="!esteActiva(alerta.stare)"
               @click="rezolva(alerta.idAlerta)"
             >
-              Rezolva
+              Rezolvă
             </button>
             <button
               class="btn-contur-rosu"
               :disabled="!esteActiva(alerta.stare)"
               @click="ignora(alerta.idAlerta)"
             >
-              Ignora
+              Ignoră
             </button>
           </td>
         </tr>
@@ -75,7 +75,7 @@
     </table>
 
     <div v-else-if="!alarmeStore.incarcare" class="card">
-      Nu exista alerte pentru filtrul selectat.
+      Nu există alerte pentru filtrul selectat.
     </div>
   </div>
 </template>

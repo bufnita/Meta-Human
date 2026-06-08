@@ -37,7 +37,7 @@
             to="/pacienti"
             @click="meniuDeschis = false"
           >
-            Pacienti
+            Pacienți
           </router-link>
 
           <router-link v-if="utilizatorStore.esteAdmin" to="/medici" @click="meniuDeschis = false">

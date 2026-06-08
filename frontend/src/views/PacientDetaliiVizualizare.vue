@@ -13,7 +13,7 @@
         class="btn-contur"
         @click="comutaEditare"
       >
-        {{ editareActiva ? 'Renunta la editare' : 'Editeaza date pacient' }}
+        {{ editareActiva ? 'Renunță la editare' : 'Editează date pacient' }}
       </button>
     </div>
 

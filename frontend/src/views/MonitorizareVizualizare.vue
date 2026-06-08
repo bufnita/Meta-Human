@@ -3,7 +3,7 @@
     <div class="header">
       <div>
         <h1>Monitorizare</h1>
-        <p>Ultimele masuratori primite de la dispozitiv</p>
+        <p>Ultimele măsurători primite de la dispozitiv</p>
       </div>
       <select v-model.number="ultimele" @change="incarcaIstoric">
         <option :value="10">Ultimele 10</option>
@@ -12,7 +12,7 @@
       </select>
     </div>
 
-    <div v-if="incarcare" class="card">Se incarca...</div>
+    <div v-if="incarcare" class="card">Se încarcă...</div>
     <div v-if="eroare" class="eroare">{{ eroare }}</div>
 
     <div class="carduri-monitorizare">
@@ -25,13 +25,13 @@
         <p v-if="card.masuratoare">
           {{ new Date(card.masuratoare.dataOra).toLocaleString('ro-RO') }}
         </p>
-        <p v-else>Nu exista masuratori recente.</p>
+        <p v-else>Nu există măsurători recente.</p>
       </div>
     </div>
 
     <div class="card">
       <div class="antet-card">
-        <h2>Istoric masuratori</h2>
+        <h2>Istoric măsurători</h2>
       </div>
 
       <table v-if="istoric.length">
@@ -54,7 +54,7 @@
           </tr>
         </tbody>
       </table>
-      <p v-else-if="!incarcare">Nu exista masuratori inregistrate.</p>
+      <p v-else-if="!incarcare">Nu există măsurători înregistrate.</p>
     </div>
   </div>
 </template>
@@ -82,7 +82,7 @@ async function incarcaIstoric() {
   } catch (err: unknown) {
     eroare.value =
       (err as { response?: { data?: { mesaj?: string } } }).response?.data?.mesaj ||
-      'Eroare la incarcarea masuratorilor'
+      'Eroare la încărcarea măsurătorilor'
   } finally {
     incarcare.value = false
   }
@@ -95,7 +95,7 @@ function ultimaPentru(tip: string) {
 const carduriMasuratori = computed(() => [
   {
     cheie: 'temperatura',
-    titlu: 'Temperatura',
+    titlu: 'Temperatură',
     unitateFallback: 'C',
     masuratoare: ultimaPentru('temperatura'),
   },
