@@ -8,13 +8,21 @@
           {{ pacientiStore.pacientSelectat.activ ? 'Activ' : 'Inactiv' }}
         </span>
       </h1>
-      <button
-        v-if="pacientiStore.pacientSelectat"
-        class="btn-contur"
-        @click="comutaEditare"
-      >
-        {{ editareActiva ? 'Renunță la editare' : 'Editează date pacient' }}
-      </button>
+      <div v-if="pacientiStore.pacientSelectat" class="actiuni-antet">
+        <button class="btn-contur" @click="comutaEditare">
+          {{ editareActiva ? 'Renunță la editare' : 'Editează date pacient' }}
+        </button>
+        <button
+          v-if="pacientiStore.pacientSelectat.activ"
+          class="btn-contur-rosu"
+          @click="dezactiveazaPacient"
+        >
+          Dezactivează
+        </button>
+        <button v-else class="btn-activeaza" @click="activeazaPacient">
+          Activează
+        </button>
+      </div>
     </div>
 
     <div v-if="pacientiStore.incarcare" class="incarcare">Se încarcă...</div>
@@ -446,6 +454,24 @@ function comutaEditare() {
   }
 }
 
+async function dezactiveazaPacient() {
+  if (confirm('Ești sigur că vrei să dezactivezi acest pacient?')) {
+    await pacientiStore.dezactiveaza(pacientId)
+    if (!pacientiStore.eroare) {
+      await pacientiStore.incarcaDetaliu(pacientId)
+    }
+  }
+}
+
+async function activeazaPacient() {
+  if (confirm('Ești sigur că vrei să reactivezi acest pacient?')) {
+    await pacientiStore.activeaza(pacientId)
+    if (!pacientiStore.eroare) {
+      await pacientiStore.incarcaDetaliu(pacientId)
+    }
+  }
+}
+
 async function salveazaPacient() {
   await pacientiStore.actualizeaza(pacientId, {
     ...formularPacient.value,
@@ -592,6 +618,14 @@ async function stergeRecomandare(idRecomandare: number) {
   padding-bottom: 1.5rem;
   border-bottom: 2px solid #e2e8f0;
   flex-wrap: wrap;
+}
+
+.actiuni-antet {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-left: auto;
 }
 
 h1 {

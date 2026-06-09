@@ -21,6 +21,7 @@ export interface Medic {
   email: string
   specializare?: string | null
   telefon?: string | null
+  activ: boolean
 }
 
 export interface CerereMedic {

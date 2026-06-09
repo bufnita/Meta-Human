@@ -33,11 +33,15 @@ export const pacientiApi = {
   },
 
   async dezactiveaza(id: number): Promise<void> {
-    await api.delete(`/pacienti/${id}`)
+    await api.patch(`/pacienti/${id}/dezactivare`)
   },
 
-  async stergeDefinitiv(id: number): Promise<void> {
-    await api.delete(`/pacienti/${id}/definitiv`)
+  async activeaza(id: number): Promise<void> {
+    await api.patch(`/pacienti/${id}/activare`)
+  },
+
+  async sterge(id: number): Promise<void> {
+    await api.delete(`/pacienti/${id}`)
   },
 
   async obtineIstoric(id: number, ultimele = 100): Promise<IstoricMasuratori> {

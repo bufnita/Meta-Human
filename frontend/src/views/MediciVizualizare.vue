@@ -93,23 +93,40 @@
           <th>Email</th>
           <th>Specializare</th>
           <th>Telefon</th>
+          <th>Status</th>
           <th>Acțiuni</th>
         </tr>
       </thead>
       <tbody>
-        <tr v-for="medic in mediciStore.medici" :key="medic.idMedic">
+        <tr
+          v-for="medic in mediciStore.medici"
+          :key="medic.idMedic"
+          :class="{ inactiv: !medic.activ }"
+        >
           <td>{{ medic.nume }}</td>
           <td>{{ medic.prenume }}</td>
           <td>{{ medic.email }}</td>
           <td>{{ medic.specializare ?? '-' }}</td>
           <td>{{ medic.telefon ?? '-' }}</td>
+          <td>
+            <span :class="medic.activ ? 'badge-activ' : 'badge-inactiv'">
+              {{ medic.activ ? 'Activ' : 'Inactiv' }}
+            </span>
+          </td>
           <td class="td-actiuni">
             <button class="btn-contur" @click="incepeEditare(medic)">Editează</button>
-            <button class="btn-contur-rosu" @click="dezactiveaza(medic.idMedic)">
+            <button
+              v-if="medic.activ"
+              class="btn-contur-rosu"
+              @click="dezactiveaza(medic.idMedic)"
+            >
               Dezactivează
             </button>
-            <button class="btn-contur-verde" @click="arataPacienti(medic)">Listă Pacienți</button>
-            <button class="btn-contur-rosu" @click="stergeDefinitiv(medic.idMedic)">Șterge</button>
+            <button v-else class="btn-activeaza" @click="activeaza(medic.idMedic)">
+              Activează
+            </button>
+            <button class="btn-contur" @click="arataPacienti(medic)">Listă Pacienți</button>
+            <button class="btn-contur-rosu" @click="stergeMedic(medic.idMedic)">Șterge</button>
           </td>
         </tr>
       </tbody>
@@ -133,7 +150,7 @@
             <th>Vârstă</th>
             <th>Telefon</th>
             <th>Email</th>
-            <th>Activ</th>
+            <th>Status</th>
             <th>Acțiuni</th>
           </tr>
         </thead>
@@ -274,13 +291,19 @@ async function dezactiveaza(id: number) {
   }
 }
 
-async function stergeDefinitiv(id: number) {
+async function activeaza(id: number) {
+  if (confirm('Ești sigur că vrei să reactivezi acest medic?')) {
+    await mediciStore.activeaza(id)
+  }
+}
+
+async function stergeMedic(id: number) {
   if (
     confirm(
       'Ești sigur că vrei să ȘTERGI DEFINITIV acest medic? Medicul nu trebuie să aibă pacienți!',
     )
   ) {
-    await mediciStore.stergeDefinitiv(id)
+    await mediciStore.sterge(id)
   }
 }
 </script>

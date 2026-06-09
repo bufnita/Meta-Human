@@ -23,11 +23,31 @@ export const usePacientiStore = defineStore('pacienti', () => {
   const incarcare = ref(false)
   const eroare = ref<string | null>(null)
 
+  function ordoneazaPacienti(lista: Pacient[]): Pacient[] {
+    return [...lista].sort((a, b) => {
+      if (a.activ !== b.activ) return Number(b.activ) - Number(a.activ)
+      return a.nume.localeCompare(b.nume, 'ro', { sensitivity: 'base' })
+    })
+  }
+
+  function actualizeazaStatusLocal(id: number, activ: boolean) {
+    pacienti.value = ordoneazaPacienti(
+      pacienti.value.map((p) => (p.idPacient === id ? { ...p, activ } : p)),
+    )
+    if (pacientSelectat.value?.idPacient === id) {
+      pacientSelectat.value = { ...pacientSelectat.value, activ }
+    }
+  }
+
+  async function sincronizeazaListaDinServer() {
+    pacienti.value = ordoneazaPacienti(await pacientiApi.obtineLista())
+  }
+
   async function incarcaLista() {
     incarcare.value = true
     eroare.value = null
     try {
-      pacienti.value = await pacientiApi.obtineLista()
+      await sincronizeazaListaDinServer()
     } catch (err: unknown) {
       eroare.value =
         (err as { response?: { data?: { mesaj?: string } } }).response?.data?.mesaj ||
@@ -90,7 +110,12 @@ export const usePacientiStore = defineStore('pacienti', () => {
     eroare.value = null
     try {
       await pacientiApi.dezactiveaza(id)
-      pacienti.value = pacienti.value.filter((p) => p.idPacient !== id)
+      actualizeazaStatusLocal(id, false)
+      try {
+        await sincronizeazaListaDinServer()
+      } catch {
+        // lista e deja actualizată local
+      }
     } catch (err: unknown) {
       eroare.value =
         (err as { response?: { data?: { mesaj?: string } } }).response?.data?.mesaj ||
@@ -100,11 +125,31 @@ export const usePacientiStore = defineStore('pacienti', () => {
     }
   }
 
-  async function stergeDefinitiv(id: number) {
+  async function activeaza(id: number) {
     incarcare.value = true
     eroare.value = null
     try {
-      await pacientiApi.stergeDefinitiv(id)
+      await pacientiApi.activeaza(id)
+      actualizeazaStatusLocal(id, true)
+      try {
+        await sincronizeazaListaDinServer()
+      } catch {
+        // lista e deja actualizată local
+      }
+    } catch (err: unknown) {
+      eroare.value =
+        (err as { response?: { data?: { mesaj?: string } } }).response?.data?.mesaj ||
+        'Eroare la activarea pacientului'
+    } finally {
+      incarcare.value = false
+    }
+  }
+
+  async function sterge(id: number) {
+    incarcare.value = true
+    eroare.value = null
+    try {
+      await pacientiApi.sterge(id)
       pacienti.value = pacienti.value.filter((p) => p.idPacient !== id)
     } catch (err: unknown) {
       eroare.value =
@@ -261,7 +306,8 @@ export const usePacientiStore = defineStore('pacienti', () => {
     creeaza,
     actualizeaza,
     dezactiveaza,
-    stergeDefinitiv,
+    activeaza,
+    sterge,
     incarcaIstoric,
     incarcaAlertePatient,
     incarcaPraguri,

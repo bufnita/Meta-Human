@@ -9,11 +9,31 @@ export const useMediciStore = defineStore('medici', () => {
   const incarcare = ref(false)
   const eroare = ref<string | null>(null)
 
+  function ordoneazaMedici(lista: Medic[]): Medic[] {
+    return [...lista].sort((a, b) => {
+      if (a.activ !== b.activ) return Number(b.activ) - Number(a.activ)
+      return a.nume.localeCompare(b.nume, 'ro', { sensitivity: 'base' })
+    })
+  }
+
+  function actualizeazaStatusLocal(id: number, activ: boolean) {
+    medici.value = ordoneazaMedici(
+      medici.value.map((m) => (m.idMedic === id ? { ...m, activ } : m)),
+    )
+    if (medicSelectat.value?.idMedic === id) {
+      medicSelectat.value = { ...medicSelectat.value, activ }
+    }
+  }
+
+  async function sincronizeazaListaDinServer() {
+    medici.value = ordoneazaMedici(await mediciApi.obtineToti())
+  }
+
   async function incarcaToti() {
     incarcare.value = true
     eroare.value = null
     try {
-      medici.value = await mediciApi.obtineToti()
+      await sincronizeazaListaDinServer()
     } catch (err: unknown) {
       eroare.value =
         (err as { response?: { data?: { mesaj?: string } } }).response?.data?.mesaj ||
@@ -61,7 +81,12 @@ export const useMediciStore = defineStore('medici', () => {
     eroare.value = null
     try {
       await mediciApi.dezactiveaza(id)
-      medici.value = medici.value.filter((m) => m.idMedic !== id)
+      actualizeazaStatusLocal(id, false)
+      try {
+        await sincronizeazaListaDinServer()
+      } catch {
+        // lista e deja actualizată local
+      }
     } catch (err: unknown) {
       eroare.value =
         (err as { response?: { data?: { mesaj?: string } } }).response?.data?.mesaj ||
@@ -71,11 +96,31 @@ export const useMediciStore = defineStore('medici', () => {
     }
   }
 
-  async function stergeDefinitiv(id: number) {
+  async function activeaza(id: number) {
     incarcare.value = true
     eroare.value = null
     try {
-      await mediciApi.stergeDefinitiv(id)
+      await mediciApi.activeaza(id)
+      actualizeazaStatusLocal(id, true)
+      try {
+        await sincronizeazaListaDinServer()
+      } catch {
+        // lista e deja actualizată local
+      }
+    } catch (err: unknown) {
+      eroare.value =
+        (err as { response?: { data?: { mesaj?: string } } }).response?.data?.mesaj ||
+        'Eroare la activarea medicului'
+    } finally {
+      incarcare.value = false
+    }
+  }
+
+  async function sterge(id: number) {
+    incarcare.value = true
+    eroare.value = null
+    try {
+      await mediciApi.sterge(id)
       medici.value = medici.value.filter((m) => m.idMedic !== id)
     } catch (err: unknown) {
       eroare.value =
@@ -95,6 +140,7 @@ export const useMediciStore = defineStore('medici', () => {
     creeaza,
     actualizeaza,
     dezactiveaza,
-    stergeDefinitiv,
+    activeaza,
+    sterge,
   }
 })

@@ -37,7 +37,8 @@ public class PacientService
         }
 
         return await query
-            .OrderBy(p => p.Nume)
+            .OrderByDescending(p => p.Activ)
+            .ThenBy(p => p.Nume)
             .Select(p => new RaspunsPacientDTO
             {
                 IdPacient = p.IdPacient,
@@ -198,12 +199,35 @@ public class PacientService
         await _context.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task ActiveazaAsync(
+        int idPacient,
+        CancellationToken cancellationToken = default)
+    {
+        var pacient = await ObtinePacientCuVerificareAccesAsync(idPacient, cancellationToken);
+
+        if (pacient.Activ)
+            throw new InvalidOperationException("Pacientul este deja activ.");
+
+        pacient.Activ = true;
+
+        if (pacient.IdUtilizator.HasValue)
+        {
+            var utilizator = await _context.Utilizatori
+                .FirstOrDefaultAsync(u => u.IdUtilizator == pacient.IdUtilizator.Value, cancellationToken);
+
+            if (utilizator != null)
+                utilizator.Activ = true;
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task StergeDefinitivAsync(
         int idPacient,
         CancellationToken cancellationToken = default)
     {
         if (!_utilizatorCurent.EsteAdmin)
-            throw new AccesInterzisException("Doar administratorul poate șterge definitiv pacienți.");
+            throw new AccesInterzisException("Doar administratorul poate șterge pacienți.");
 
         var pacient = await _context.Pacienti
             .FirstOrDefaultAsync(p => p.IdPacient == idPacient, cancellationToken);

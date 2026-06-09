@@ -101,7 +101,7 @@ public class PacientiController : ControllerBase
         }
     }
 
-    [HttpDelete("{id:int}")]
+    [HttpPatch("{id:int}/dezactivare")]
     public async Task<IActionResult> Dezactiveaza(
         int id,
         CancellationToken cancellationToken)
@@ -121,9 +121,33 @@ public class PacientiController : ControllerBase
         }
     }
 
-    [HttpDelete("{id:int}/definitiv")]
+    [HttpPatch("{id:int}/activare")]
+    public async Task<IActionResult> Activeaza(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _pacientService.ActiveazaAsync(id, cancellationToken);
+            return NoContent();
+        }
+        catch (ResursaNegasitaException)
+        {
+            return NotFound(new { mesaj = "Pacientul nu a fost găsit." });
+        }
+        catch (AccesInterzisException ex)
+        {
+            return StatusCode(403, new { mesaj = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { mesaj = ex.Message });
+        }
+    }
+
+    [HttpDelete("{id:int}")]
     [Authorize(Policy = "Admin")]
-    public async Task<IActionResult> StergeDefinitiv(
+    public async Task<IActionResult> Sterge(
         int id,
         CancellationToken cancellationToken)
     {

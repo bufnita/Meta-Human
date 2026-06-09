@@ -182,6 +182,36 @@ nav a.router-link-active {
   border-color: white;
 }
 
+/* Acțiune pozitivă: reactivare cont (contur verde — ca btn-contur-rosu) */
+.btn-activeaza {
+  padding: 0.4rem 0.9rem;
+  background-color: white;
+  color: #276749;
+  border: 2px solid #38a169;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-right: 0.4rem;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
+}
+.btn-activeaza:hover {
+  background-color: #38a169;
+  color: white;
+}
+.btn-activeaza:focus-visible {
+  outline: 2px solid #276749;
+  outline-offset: 2px;
+}
+.btn-activeaza:disabled {
+  background-color: white;
+  color: #a0aec0;
+  border-color: #a0aec0;
+  cursor: not-allowed;
+}
+
 .link-deconectare-mobil {
   display: none;
   cursor: pointer;

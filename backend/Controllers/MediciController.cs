@@ -72,7 +72,7 @@ public class MediciController : ControllerBase
         }
     }
 
-    [HttpDelete("{id:int}")]
+    [HttpPatch("{id:int}/dezactivare")]
     public async Task<IActionResult> Dezactiveaza(
         int id,
         CancellationToken cancellationToken)
@@ -86,10 +86,34 @@ public class MediciController : ControllerBase
         {
             return NotFound(new { mesaj = "Medicul nu a fost găsit." });
         }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { mesaj = ex.Message });
+        }
     }
 
-    [HttpDelete("{id:int}/definitiv")]
-    public async Task<IActionResult> StergeDefinitiv(
+    [HttpPatch("{id:int}/activare")]
+    public async Task<IActionResult> Activeaza(
+        int id,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _medicService.ActiveazaAsync(id, cancellationToken);
+            return NoContent();
+        }
+        catch (ResursaNegasitaException)
+        {
+            return NotFound(new { mesaj = "Medicul nu a fost găsit." });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { mesaj = ex.Message });
+        }
+    }
+
+    [HttpDelete("{id:int}")]
+    public async Task<IActionResult> Sterge(
         int id,
         CancellationToken cancellationToken)
     {

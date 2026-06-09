@@ -91,7 +91,7 @@
           <th>Vârstă</th>
           <th>Telefon</th>
           <th>Email</th>
-          <th>Activ</th>
+          <th>Status</th>
           <th>Acțiuni</th>
         </tr>
       </thead>
@@ -106,7 +106,7 @@
           <td data-label="Vârstă">{{ pacient.varsta }}</td>
           <td data-label="Telefon">{{ pacient.telefon ?? '-' }}</td>
           <td data-label="Email">{{ pacient.email ?? '-' }}</td>
-          <td data-label="Activ">
+          <td data-label="Status">
             <span :class="pacient.activ ? 'badge-activ' : 'badge-inactiv'">
               {{ pacient.activ ? 'Activ' : 'Inactiv' }}
             </span>
@@ -116,16 +116,23 @@
               Detalii
             </button>
             <button
+              v-if="pacient.activ"
               class="btn-contur-rosu"
               @click="dezactiveazaPacient(pacient.idPacient)"
-              :disabled="!pacient.activ"
             >
               Dezactivează
             </button>
             <button
+              v-else
+              class="btn-activeaza"
+              @click="activeazaPacient(pacient.idPacient)"
+            >
+              Activează
+            </button>
+            <button
               v-if="utilizatorStore.esteAdmin"
               class="btn-contur-rosu"
-              @click="stergeDefinitiv(pacient.idPacient)"
+              @click="stergePacient(pacient.idPacient)"
             >
               Șterge
             </button>
@@ -214,11 +221,17 @@ async function dezactiveazaPacient(id: number) {
   }
 }
 
-async function stergeDefinitiv(id: number) {
+async function activeazaPacient(id: number) {
+  if (confirm('Ești sigur că vrei să reactivezi acest pacient?')) {
+    await pacientiStore.activeaza(id)
+  }
+}
+
+async function stergePacient(id: number) {
   if (
     confirm('Ești sigur că vrei să ȘTERGI DEFINITIV acest pacient? Acțiunea este ireversibilă!')
   ) {
-    await pacientiStore.stergeDefinitiv(id)
+    await pacientiStore.sterge(id)
   }
 }
 </script>
