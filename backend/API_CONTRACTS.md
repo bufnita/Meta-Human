@@ -427,6 +427,24 @@ Toate rutele necesită JWT cu rol **Medic** sau **Admin**, exceptând `/definiti
 
 **Primești (201):** recomandarea creată (`RaspunsRecomandareDTO`).
 
+### `PUT /api/pacienti/{id}/recomandari/{idRecomandare}`
+
+**Ce face:** Actualizează o recomandare existentă a pacientului.
+
+**Cine:** Medicul responsabil sau Admin.
+
+**Trimite:** același body ca la `POST /api/pacienti/{id}/recomandari`.
+
+**Primești (200):** recomandarea actualizată (`RaspunsRecomandareDTO`).
+
+### `DELETE /api/pacienti/{id}/recomandari/{idRecomandare}`
+
+**Ce face:** Șterge definitiv recomandarea selectată.
+
+**Cine:** Medicul responsabil sau Admin.
+
+**Primești:** **204** (fără body).
+
 ---
 
 ## Alerte globale — doar Medic

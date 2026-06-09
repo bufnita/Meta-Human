@@ -283,13 +283,14 @@
       <div class="card">
         <div class="antet-card">
           <h2>Recomandări</h2>
-          <button class="btn-contur" @click="arataFormularRecomandare = !arataFormularRecomandare">
+          <button class="btn-contur" @click="comutaFormularRecomandare">
             {{ arataFormularRecomandare ? 'Anulează' : '+ Adaugă Recomandare' }}
           </button>
         </div>
 
         <div v-if="arataFormularRecomandare" class="sub-formular">
-          <form @submit.prevent="adaugaRecomandare">
+          <h3>{{ recomandareEditataId === null ? 'Recomandare nouă' : 'Modifică recomandarea' }}</h3>
+          <form @submit.prevent="salveazaRecomandare">
             <div class="rand-campuri">
               <div class="camp">
                 <label>Tip activitate *</label>
@@ -315,7 +316,7 @@
               <input v-model="formularRec.alteIndicatii" />
             </div>
             <button type="submit" class="btn-primar" style="margin-top: 0.5rem">
-              Salvează Recomandare
+              {{ recomandareEditataId === null ? 'Salvează Recomandare' : 'Salvează Modificările' }}
             </button>
           </form>
         </div>
@@ -329,6 +330,7 @@
               <th>De la</th>
               <th>Până la</th>
               <th>Stare</th>
+              <th class="coloana-actiuni">Acțiuni</th>
             </tr>
           </thead>
           <tbody>
@@ -339,6 +341,12 @@
               <td>{{ rec.dataInceput }}</td>
               <td>{{ rec.dataSfarsit ?? '-' }}</td>
               <td>{{ rec.stare }}</td>
+              <td class="td-actiuni">
+                <button class="btn-contur" @click="incepeEditareRecomandare(rec)">Modifică</button>
+                <button class="btn-contur-rosu" @click="stergeRecomandare(rec.idRecomandare)">
+                  Șterge
+                </button>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -352,7 +360,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePacientiStore } from '../stores/pacienti'
-import type { PragAlerta } from '../types'
+import type { PragAlerta, Recomandare } from '../types'
 
 const route = useRoute()
 const router = useRouter()
@@ -363,6 +371,7 @@ const numarMasuratori = ref(10)
 const arataFormularPrag = ref(false)
 const pragEditatId = ref<number | null>(null)
 const arataFormularRecomandare = ref(false)
+const recomandareEditataId = ref<number | null>(null)
 const editareActiva = ref(false)
 
 const formularPacientGol = () => ({
@@ -512,17 +521,58 @@ async function stergePrag(idPrag: number) {
   }
 }
 
-async function adaugaRecomandare() {
-  await pacientiStore.adaugaRecomandare(pacientId, {
+function comutaFormularRecomandare() {
+  if (arataFormularRecomandare.value) {
+    inchideFormularRecomandare()
+    return
+  }
+
+  arataFormularRecomandare.value = true
+}
+
+function inchideFormularRecomandare() {
+  arataFormularRecomandare.value = false
+  recomandareEditataId.value = null
+  formularRec.value = formularRecGol()
+}
+
+function incepeEditareRecomandare(recomandare: Recomandare) {
+  recomandareEditataId.value = recomandare.idRecomandare
+  formularRec.value = {
+    tipActivitate: recomandare.tipActivitate,
+    durataZilnica: recomandare.durataZilnica ?? '',
+    alteIndicatii: recomandare.alteIndicatii ?? '',
+    dataInceput: recomandare.dataInceput,
+    dataSfarsit: recomandare.dataSfarsit ?? '',
+  }
+  arataFormularRecomandare.value = true
+}
+
+async function salveazaRecomandare() {
+  const cerere = {
     tipActivitate: formularRec.value.tipActivitate,
     durataZilnica: formularRec.value.durataZilnica || undefined,
     alteIndicatii: formularRec.value.alteIndicatii || undefined,
     dataInceput: formularRec.value.dataInceput,
     dataSfarsit: formularRec.value.dataSfarsit || undefined,
-  })
-  if (!pacientiStore.eroare) {
-    arataFormularRecomandare.value = false
-    formularRec.value = formularRecGol()
+  }
+
+  const recomandareSalvata =
+    recomandareEditataId.value === null
+      ? await pacientiStore.adaugaRecomandare(pacientId, cerere)
+      : await pacientiStore.actualizeazaRecomandare(pacientId, recomandareEditataId.value, cerere)
+
+  if (recomandareSalvata) {
+    inchideFormularRecomandare()
+  }
+}
+
+async function stergeRecomandare(idRecomandare: number) {
+  if (confirm('Ești sigur că vrei să ștergi această recomandare?')) {
+    const recomandareStearsa = await pacientiStore.stergeRecomandare(pacientId, idRecomandare)
+    if (recomandareStearsa && recomandareEditataId.value === idRecomandare) {
+      inchideFormularRecomandare()
+    }
   }
 }
 </script>

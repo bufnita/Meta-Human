@@ -211,6 +211,42 @@ export const usePacientiStore = defineStore('pacienti', () => {
     }
   }
 
+  async function actualizeazaRecomandare(
+    idPacient: number,
+    idRecomandare: number,
+    cerere: CerereRecomandare,
+  ) {
+    eroare.value = null
+    try {
+      const recomandareActualizata = await pacientiApi.actualizeazaRecomandare(
+        idPacient,
+        idRecomandare,
+        cerere,
+      )
+      const index = recomandari.value.findIndex((r) => r.idRecomandare === idRecomandare)
+      if (index !== -1) recomandari.value[index] = recomandareActualizata
+      return recomandareActualizata
+    } catch (err: unknown) {
+      eroare.value =
+        (err as { response?: { data?: { mesaj?: string } } }).response?.data?.mesaj ||
+        'Eroare la modificarea recomandării'
+    }
+  }
+
+  async function stergeRecomandare(idPacient: number, idRecomandare: number) {
+    eroare.value = null
+    try {
+      await pacientiApi.stergeRecomandare(idPacient, idRecomandare)
+      recomandari.value = recomandari.value.filter((r) => r.idRecomandare !== idRecomandare)
+      return true
+    } catch (err: unknown) {
+      eroare.value =
+        (err as { response?: { data?: { mesaj?: string } } }).response?.data?.mesaj ||
+        'Eroare la ștergerea recomandării'
+      return false
+    }
+  }
+
   return {
     pacienti,
     pacientSelectat,
@@ -234,5 +270,7 @@ export const usePacientiStore = defineStore('pacienti', () => {
     stergePrag,
     incarcaRecomandari,
     adaugaRecomandare,
+    actualizeazaRecomandare,
+    stergeRecomandare,
   }
 })

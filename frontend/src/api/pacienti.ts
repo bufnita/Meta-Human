@@ -82,4 +82,20 @@ export const pacientiApi = {
     const response = await api.post(`/pacienti/${id}/recomandari`, cerere)
     return response.data
   },
+
+  async actualizeazaRecomandare(
+    idPacient: number,
+    idRecomandare: number,
+    cerere: CerereRecomandare,
+  ): Promise<Recomandare> {
+    const response = await api.put(
+      `/pacienti/${idPacient}/recomandari/${idRecomandare}`,
+      cerere,
+    )
+    return response.data
+  },
+
+  async stergeRecomandare(idPacient: number, idRecomandare: number): Promise<void> {
+    await api.delete(`/pacienti/${idPacient}/recomandari/${idRecomandare}`)
+  },
 }

@@ -312,4 +312,52 @@ public class PacientiController : ControllerBase
             return StatusCode(403, new { mesaj = ex.Message });
         }
     }
+
+    [HttpPut("{id:int}/recomandari/{idRecomandare:int}")]
+    [Authorize(Policy = "MedicOrAdmin")]
+    public async Task<ActionResult<RaspunsRecomandareDTO>> ActualizeazaRecomandare(
+        int id,
+        int idRecomandare,
+        [FromBody] CerereRecomandareDTO cerere,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return Ok(await _recomandareService.ActualizeazaAsync(
+                id,
+                idRecomandare,
+                cerere,
+                cancellationToken));
+        }
+        catch (ResursaNegasitaException ex)
+        {
+            return NotFound(new { mesaj = ex.Message });
+        }
+        catch (AccesInterzisException ex)
+        {
+            return StatusCode(403, new { mesaj = ex.Message });
+        }
+    }
+
+    [HttpDelete("{id:int}/recomandari/{idRecomandare:int}")]
+    [Authorize(Policy = "MedicOrAdmin")]
+    public async Task<IActionResult> StergeRecomandare(
+        int id,
+        int idRecomandare,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _recomandareService.StergeAsync(id, idRecomandare, cancellationToken);
+            return NoContent();
+        }
+        catch (ResursaNegasitaException ex)
+        {
+            return NotFound(new { mesaj = ex.Message });
+        }
+        catch (AccesInterzisException ex)
+        {
+            return StatusCode(403, new { mesaj = ex.Message });
+        }
+    }
 }

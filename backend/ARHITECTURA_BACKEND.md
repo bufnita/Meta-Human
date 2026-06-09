@@ -127,6 +127,8 @@ HTTPS este terminat la **Nginx**; backend-ul ascultă intern pe HTTP (vezi secț
 | DELETE | `/api/pacienti/{id}/praguri/{idPrag}` | Ștergere prag alertă |
 | GET | `/api/pacienti/{id}/recomandari` | Recomandări active/istorice |
 | POST | `/api/pacienti/{id}/recomandari` | Creare recomandare |
+| PUT | `/api/pacienti/{id}/recomandari/{idRecomandare}` | Actualizare recomandare |
+| DELETE | `/api/pacienti/{id}/recomandari/{idRecomandare}` | Ștergere recomandare |
 
 ### Alerte globale (Medic)
 | Metodă | Rută | Descriere |
