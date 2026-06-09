@@ -123,6 +123,8 @@ HTTPS este terminat la **Nginx**; backend-ul ascultă intern pe HTTP (vezi secț
 | GET | `/api/pacienti/{id}/alarme` | Alerte pentru pacient |
 | GET | `/api/pacienti/{id}/praguri` | Praguri alertă configurate |
 | POST | `/api/pacienti/{id}/praguri` | Configurare prag alertă |
+| PUT | `/api/pacienti/{id}/praguri/{idPrag}` | Actualizare prag alertă |
+| DELETE | `/api/pacienti/{id}/praguri/{idPrag}` | Ștergere prag alertă |
 | GET | `/api/pacienti/{id}/recomandari` | Recomandări active/istorice |
 | POST | `/api/pacienti/{id}/recomandari` | Creare recomandare |
 

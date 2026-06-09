@@ -209,13 +209,14 @@
       <div class="card">
         <div class="antet-card">
           <h2>Praguri de Alertă</h2>
-          <button class="btn-contur" @click="arataFormularPrag = !arataFormularPrag">
+          <button class="btn-contur" @click="comutaFormularPrag">
             {{ arataFormularPrag ? 'Anulează' : '+ Adaugă Prag' }}
           </button>
         </div>
 
         <div v-if="arataFormularPrag" class="sub-formular">
-          <form @submit.prevent="adaugaPrag">
+          <h3>{{ pragEditatId === null ? 'Prag nou' : 'Modifică pragul' }}</h3>
+          <form @submit.prevent="salveazaPrag">
             <div class="rand-campuri">
               <div class="camp">
                 <label>Tip parametru *</label>
@@ -240,7 +241,9 @@
               <input v-model="formularPrag.activ" type="checkbox" id="pragActiv" />
               <label for="pragActiv">Activ</label>
             </div>
-            <button type="submit" class="btn-primar">Salvează Prag</button>
+            <button type="submit" class="btn-primar">
+              {{ pragEditatId === null ? 'Salvează Prag' : 'Salvează Modificările' }}
+            </button>
           </form>
         </div>
 
@@ -252,6 +255,7 @@
               <th>Max</th>
               <th>Durată (sec)</th>
               <th>Activ</th>
+              <th class="coloana-actiuni">Acțiuni</th>
             </tr>
           </thead>
           <tbody>
@@ -264,6 +268,10 @@
                 <span :class="prag.activ ? 'badge-activ' : 'badge-inactiv'">
                   {{ prag.activ ? 'Da' : 'Nu' }}
                 </span>
+              </td>
+              <td class="td-actiuni">
+                <button class="btn-contur" @click="incepeEditarePrag(prag)">Modifică</button>
+                <button class="btn-contur-rosu" @click="stergePrag(prag.idPrag)">Șterge</button>
               </td>
             </tr>
           </tbody>
@@ -344,6 +352,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePacientiStore } from '../stores/pacienti'
+import type { PragAlerta } from '../types'
 
 const route = useRoute()
 const router = useRouter()
@@ -352,6 +361,7 @@ const pacientiStore = usePacientiStore()
 const pacientId = Number(route.params.id)
 const numarMasuratori = ref(10)
 const arataFormularPrag = ref(false)
+const pragEditatId = ref<number | null>(null)
 const arataFormularRecomandare = ref(false)
 const editareActiva = ref(false)
 
@@ -449,14 +459,56 @@ async function reincarcaIstoric() {
   await pacientiStore.incarcaIstoric(pacientId, numarMasuratori.value)
 }
 
-async function adaugaPrag() {
-  await pacientiStore.adaugaPrag(pacientId, {
+function comutaFormularPrag() {
+  if (arataFormularPrag.value) {
+    inchideFormularPrag()
+    return
+  }
+
+  arataFormularPrag.value = true
+}
+
+function inchideFormularPrag() {
+  arataFormularPrag.value = false
+  pragEditatId.value = null
+  formularPrag.value = formularPragGol()
+}
+
+function incepeEditarePrag(prag: PragAlerta) {
+  pragEditatId.value = prag.idPrag
+  formularPrag.value = {
+    tipParametru: prag.tipParametru,
+    valoareMinima: prag.valoareMinima ?? undefined,
+    valoareMaxima: prag.valoareMaxima ?? undefined,
+    durataPersistentaSec: prag.durataPersistentaSec,
+    activ: prag.activ,
+  }
+  arataFormularPrag.value = true
+}
+
+async function salveazaPrag() {
+  const cerere = {
     ...formularPrag.value,
     durataPersistentaSec: formularPrag.value.durataPersistentaSec,
-  })
+  }
+
+  if (pragEditatId.value === null) {
+    await pacientiStore.adaugaPrag(pacientId, cerere)
+  } else {
+    await pacientiStore.actualizeazaPrag(pacientId, pragEditatId.value, cerere)
+  }
+
   if (!pacientiStore.eroare) {
-    arataFormularPrag.value = false
-    formularPrag.value = formularPragGol()
+    inchideFormularPrag()
+  }
+}
+
+async function stergePrag(idPrag: number) {
+  if (confirm('Ești sigur că vrei să ștergi acest prag de alertă?')) {
+    await pacientiStore.stergePrag(pacientId, idPrag)
+    if (!pacientiStore.eroare && pragEditatId.value === idPrag) {
+      inchideFormularPrag()
+    }
   }
 }
 
@@ -546,6 +598,29 @@ h2 {
   transition: background-color 0.2s, color 0.2s;
 }
 .btn-contur:hover { background-color: #0047AB; color: white; }
+
+.btn-contur-rosu {
+  padding: 0.4rem 0.9rem;
+  background-color: white;
+  color: #e74c3c;
+  border: 2px solid #e74c3c;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-contur-rosu:hover { background-color: #e74c3c; color: white; }
+
+.td-actiuni {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+.coloana-actiuni {
+  text-align: right;
+}
 
 .badge-activ {
   background-color: #c6f6d5;

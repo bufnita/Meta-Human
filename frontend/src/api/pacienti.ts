@@ -60,6 +60,19 @@ export const pacientiApi = {
     return response.data
   },
 
+  async actualizeazaPrag(
+    idPacient: number,
+    idPrag: number,
+    cerere: CererePragAlerta,
+  ): Promise<PragAlerta> {
+    const response = await api.put(`/pacienti/${idPacient}/praguri/${idPrag}`, cerere)
+    return response.data
+  },
+
+  async stergePrag(idPacient: number, idPrag: number): Promise<void> {
+    await api.delete(`/pacienti/${idPacient}/praguri/${idPrag}`)
+  },
+
   async obtineRecomandari(id: number): Promise<Recomandare[]> {
     const response = await api.get(`/pacienti/${id}/recomandari`)
     return response.data

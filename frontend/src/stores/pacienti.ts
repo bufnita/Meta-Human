@@ -161,6 +161,32 @@ export const usePacientiStore = defineStore('pacienti', () => {
     }
   }
 
+  async function actualizeazaPrag(idPacient: number, idPrag: number, cerere: CererePragAlerta) {
+    eroare.value = null
+    try {
+      const pragActualizat = await pacientiApi.actualizeazaPrag(idPacient, idPrag, cerere)
+      const index = praguri.value.findIndex((p) => p.idPrag === idPrag)
+      if (index !== -1) praguri.value[index] = pragActualizat
+      return pragActualizat
+    } catch (err: unknown) {
+      eroare.value =
+        (err as { response?: { data?: { mesaj?: string } } }).response?.data?.mesaj ||
+        'Eroare la modificarea pragului'
+    }
+  }
+
+  async function stergePrag(idPacient: number, idPrag: number) {
+    eroare.value = null
+    try {
+      await pacientiApi.stergePrag(idPacient, idPrag)
+      praguri.value = praguri.value.filter((p) => p.idPrag !== idPrag)
+    } catch (err: unknown) {
+      eroare.value =
+        (err as { response?: { data?: { mesaj?: string } } }).response?.data?.mesaj ||
+        'Eroare la ștergerea pragului'
+    }
+  }
+
   async function incarcaRecomandari(id: number) {
     eroare.value = null
     try {
@@ -204,6 +230,8 @@ export const usePacientiStore = defineStore('pacienti', () => {
     incarcaAlertePatient,
     incarcaPraguri,
     adaugaPrag,
+    actualizeazaPrag,
+    stergePrag,
     incarcaRecomandari,
     adaugaRecomandare,
   }

@@ -227,6 +227,50 @@ public class PacientiController : ControllerBase
         }
     }
 
+    [HttpPut("{id:int}/praguri/{idPrag:int}")]
+    [Authorize(Policy = "MedicOrAdmin")]
+    public async Task<ActionResult<RaspunsPragAlertaDTO>> ActualizeazaPrag(
+        int id,
+        int idPrag,
+        [FromBody] CererePragAlertaDTO cerere,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            return Ok(await _pragAlertaService.ActualizeazaAsync(id, idPrag, cerere, cancellationToken));
+        }
+        catch (ResursaNegasitaException ex)
+        {
+            return NotFound(new { mesaj = ex.Message });
+        }
+        catch (AccesInterzisException ex)
+        {
+            return StatusCode(403, new { mesaj = ex.Message });
+        }
+    }
+
+    [HttpDelete("{id:int}/praguri/{idPrag:int}")]
+    [Authorize(Policy = "MedicOrAdmin")]
+    public async Task<IActionResult> StergePrag(
+        int id,
+        int idPrag,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _pragAlertaService.StergeAsync(id, idPrag, cancellationToken);
+            return NoContent();
+        }
+        catch (ResursaNegasitaException ex)
+        {
+            return NotFound(new { mesaj = ex.Message });
+        }
+        catch (AccesInterzisException ex)
+        {
+            return StatusCode(403, new { mesaj = ex.Message });
+        }
+    }
+
     [HttpGet("{id:int}/recomandari")]
     [Authorize(Policy = "MedicOrAdmin")]
     public async Task<ActionResult<IReadOnlyList<RaspunsRecomandareDTO>>> ObtineRecomandari(

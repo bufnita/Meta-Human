@@ -370,6 +370,24 @@ Toate rutele necesită JWT cu rol **Medic** sau **Admin**, exceptând `/definiti
 
 **Primești (201):** pragul creat (`RaspunsPragAlertaDTO`).
 
+### `PUT /api/pacienti/{id}/praguri/{idPrag}`
+
+**Ce face:** Actualizează un prag de alertă existent al pacientului.
+
+**Cine:** Medicul responsabil sau Admin.
+
+**Trimite:** același body ca la `POST /api/pacienti/{id}/praguri`.
+
+**Primești (200):** pragul actualizat (`RaspunsPragAlertaDTO`).
+
+### `DELETE /api/pacienti/{id}/praguri/{idPrag}`
+
+**Ce face:** Șterge definitiv pragul de alertă selectat.
+
+**Cine:** Medicul responsabil sau Admin.
+
+**Primești:** **204** (fără body).
+
 ### `GET /api/pacienti/{id}/recomandari`
 
 **Ce face:** Recomandările medicului pentru pacient (activitate, durată, perioadă).
