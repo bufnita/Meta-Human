@@ -108,25 +108,79 @@
             <button class="btn-contur-rosu" @click="dezactiveaza(medic.idMedic)">
               Dezactivează
             </button>
-            <button class="btn-contur-rosu" @click="stergeDefinitiv(medic.idMedic)">
-              Șterge
-            </button>
+            <button class="btn-contur-verde" @click="arataPacienti(medic)">Listă Pacienți</button>
+            <button class="btn-contur-rosu" @click="stergeDefinitiv(medic.idMedic)">Șterge</button>
           </td>
         </tr>
       </tbody>
     </table>
     <p v-else-if="!mediciStore.incarcare">Nu există medici înregistrați.</p>
+
+    <!-- Panel pacienți medic -->
+    <div v-if="medicSelectat" class="panel-pacienti">
+      <div class="panel-antet">
+        <h2>Pacienții Dr. {{ medicSelectat.nume }} {{ medicSelectat.prenume }}</h2>
+        <button class="btn-contur" @click="inchidePacienti">✕ Închide</button>
+      </div>
+
+      <div v-if="seIncarcaPacienti">Se încarcă pacienții...</div>
+      <div v-else-if="eroarePacienti" class="eroare">{{ eroarePacienti }}</div>
+      <table v-else-if="pacientiiMedicului.length > 0">
+        <thead>
+          <tr>
+            <th>Nume</th>
+            <th>Prenume</th>
+            <th>Vârstă</th>
+            <th>Telefon</th>
+            <th>Email</th>
+            <th>Activ</th>
+            <th>Acțiuni</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            v-for="pacient in pacientiiMedicului"
+            :key="pacient.idPacient"
+            :class="{ inactiv: !pacient.activ }"
+          >
+            <td>{{ pacient.nume }}</td>
+            <td>{{ pacient.prenume }}</td>
+            <td>{{ pacient.varsta }}</td>
+            <td>{{ pacient.telefon ?? '-' }}</td>
+            <td>{{ pacient.email ?? '-' }}</td>
+            <td>
+              <span :class="pacient.activ ? 'badge-activ' : 'badge-inactiv'">
+                {{ pacient.activ ? 'Activ' : 'Inactiv' }}
+              </span>
+            </td>
+            <td>
+              <button class="btn-contur" @click="router.push(`/pacienti/${pacient.idPacient}`)">
+                Detalii
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p v-else>Acest medic nu are pacienți înregistrați.</p>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
+import { useRouter } from 'vue-router'
 import { useMediciStore } from '../stores/medici'
-import type { Medic } from '../types'
+import { pacientiApi } from '../api/pacienti'
+import type { Medic, Pacient } from '../types'
 
+const router = useRouter()
 const mediciStore = useMediciStore()
 const arataFormularAdaugare = ref(false)
 const medicDeeditat = ref<Medic | null>(null)
+const medicSelectat = ref<Medic | null>(null)
+const pacientiiMedicului = ref<Pacient[]>([])
+const seIncarcaPacienti = ref(false)
+const eroarePacienti = ref<string | null>(null)
 
 const formularGol = () => ({
   nume: '',
@@ -149,6 +203,28 @@ const formularEditare = ref({
 onMounted(() => {
   mediciStore.incarcaToti()
 })
+
+async function arataPacienti(medic: Medic) {
+  medicSelectat.value = medic
+  pacientiiMedicului.value = []
+  eroarePacienti.value = null
+  seIncarcaPacienti.value = true
+  try {
+    const toti = await pacientiApi.obtineLista()
+    pacientiiMedicului.value = toti.filter((p) => p.idMedic === medic.idMedic)
+  } catch (err: unknown) {
+    eroarePacienti.value =
+      (err as { response?: { data?: { mesaj?: string } } }).response?.data?.mesaj ||
+      'Eroare la încărcarea pacienților'
+  } finally {
+    seIncarcaPacienti.value = false
+  }
+}
+
+function inchidePacienti() {
+  medicSelectat.value = null
+  pacientiiMedicului.value = []
+}
 
 async function adaugaMedic() {
   await mediciStore.creeaza({
@@ -225,35 +301,52 @@ async function stergeDefinitiv(id: number) {
   border-bottom: 2px solid #e2e8f0;
 }
 
-h1 { font-size: 1.8rem; color: #2d3748; }
-h2 { font-size: 1.2rem; color: #2d3748; margin-bottom: 1.2rem; }
+h1 {
+  font-size: 1.8rem;
+  color: #2d3748;
+}
+h2 {
+  font-size: 1.2rem;
+  color: #2d3748;
+  margin-bottom: 1.2rem;
+}
 
 .btn-primar {
   padding: 0.5rem 1.2rem;
   background-color: white;
-  color: #0047AB;
-  border: 2px solid #0047AB;
+  color: #0047ab;
+  border: 2px solid #0047ab;
   border-radius: 8px;
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s, color 0.2s;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
 }
-.btn-primar:hover { background-color: #0047AB; color: white; }
+.btn-primar:hover {
+  background-color: #0047ab;
+  color: white;
+}
 
 .btn-contur {
   padding: 0.4rem 0.9rem;
   background-color: white;
-  color: #0047AB;
-  border: 2px solid #0047AB;
+  color: #0047ab;
+  border: 2px solid #0047ab;
   border-radius: 8px;
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   margin-right: 0.4rem;
-  transition: background-color 0.2s, color 0.2s;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
 }
-.btn-contur:hover { background-color: #0047AB; color: white; }
+.btn-contur:hover {
+  background-color: #0047ab;
+  color: white;
+}
 
 .btn-contur-rosu {
   padding: 0.4rem 0.9rem;
@@ -265,9 +358,33 @@ h2 { font-size: 1.2rem; color: #2d3748; margin-bottom: 1.2rem; }
   font-weight: 600;
   cursor: pointer;
   margin-right: 0.4rem;
-  transition: background-color 0.2s, color 0.2s;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
 }
-.btn-contur-rosu:hover { background-color: #e74c3c; color: white; }
+.btn-contur-rosu:hover {
+  background-color: #e74c3c;
+  color: white;
+}
+
+.btn-contur-verde {
+  padding: 0.4rem 0.9rem;
+  background-color: white;
+  color: #276749;
+  border: 2px solid #276749;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  margin-right: 0.4rem;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
+}
+.btn-contur-verde:hover {
+  background-color: #276749;
+  color: white;
+}
 
 .formular-container {
   background: white;
@@ -275,12 +392,45 @@ h2 { font-size: 1.2rem; color: #2d3748; margin-bottom: 1.2rem; }
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   margin-bottom: 1.5rem;
-  border-top: 4px solid #0047AB;
+  border-top: 4px solid #0047ab;
 }
 
-.rand-campuri { display: flex; gap: 1rem; }
-.camp { flex: 1; margin-bottom: 1rem; }
-.camp label { display: block; margin-bottom: 0.4rem; font-weight: 600; font-size: 0.9rem; color: #2d3748; }
+.panel-pacienti {
+  background: white;
+  padding: 1.5rem 2rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  margin-top: 1.5rem;
+  border-top: 4px solid #276749;
+}
+
+.panel-antet {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.2rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+.panel-antet h2 {
+  margin-bottom: 0;
+}
+
+.rand-campuri {
+  display: flex;
+  gap: 1rem;
+}
+.camp {
+  flex: 1;
+  margin-bottom: 1rem;
+}
+.camp label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: #2d3748;
+}
 .camp input {
   width: 100%;
   padding: 0.6rem 0.8rem;
@@ -291,9 +441,15 @@ h2 { font-size: 1.2rem; color: #2d3748; margin-bottom: 1.2rem; }
   outline: none;
   transition: border-color 0.2s;
 }
-.camp input:focus { border-color: #0047AB; }
+.camp input:focus {
+  border-color: #0047ab;
+}
 
-.butoane-formular { display: flex; gap: 1rem; margin-top: 0.5rem; }
+.butoane-formular {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
 
 table {
   width: 100%;
@@ -305,7 +461,7 @@ table {
 }
 
 th {
-  background-color: #0047AB;
+  background-color: #0047ab;
   color: white;
   padding: 0.9rem 0.75rem;
   text-align: left;
@@ -320,10 +476,39 @@ td {
   color: #2d3748;
 }
 
-.td-actiuni { white-space: nowrap; }
-tbody tr:nth-child(odd) td { background-color: #ffffff; }
-tbody tr:nth-child(even) td { background-color: #f7f9fb; }
-tbody tr:hover td { background-color: #eaf1ff; }
+.td-actiuni {
+  white-space: nowrap;
+}
+tbody tr:nth-child(odd) td {
+  background-color: #ffffff;
+}
+tbody tr:nth-child(even) td {
+  background-color: #f7f9fb;
+}
+tbody tr:hover td {
+  background-color: #eaf1ff;
+}
+tr.inactiv td {
+  color: #a0aec0;
+}
+
+.badge-activ {
+  background-color: #c6f6d5;
+  color: #276749;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.badge-inactiv {
+  background-color: #fed7d7;
+  color: #c53030;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
 
 .eroare {
   background-color: #fff5f5;
@@ -336,7 +521,12 @@ tbody tr:hover td { background-color: #eaf1ff; }
 }
 
 @media (max-width: 640px) {
-  .medici { padding: 1.5rem 1rem; }
-  .rand-campuri { flex-direction: column; gap: 0; }
+  .medici {
+    padding: 1.5rem 1rem;
+  }
+  .rand-campuri {
+    flex-direction: column;
+    gap: 0;
+  }
 }
 </style>
