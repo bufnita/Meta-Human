@@ -17,6 +17,13 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Inject production secrets
+        run: |
+          sed -i "s|PROD-SQL|${{ secrets.PROD_DB_HOST }}|g" appsettings.json
+          sed -i "s|__DB_USER__|${{ secrets.PROD_DB_USER }}|g" appsettings.json
+          sed -i "s|__DB_PASSWORD__|${{ secrets.PROD_DB_PASSWORD }}|g" appsettings.json
+          sed -i "s|__JWT_KEY__|${{ secrets.PROD_JWT_KEY }}|g" appsettings.json
+
       - name: Publish ASP.NET Core
         run: dotnet publish -c Release -o ./publish
 
