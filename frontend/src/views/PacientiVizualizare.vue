@@ -115,7 +115,11 @@
             <button class="btn-contur" @click="router.push(`/pacienti/${pacient.idPacient}`)">
               Detalii
             </button>
-            <button class="btn-contur-rosu" @click="dezactiveazaPacient(pacient.idPacient)">
+            <button
+              class="btn-contur-rosu"
+              @click="dezactiveazaPacient(pacient.idPacient)"
+              :disabled="!pacient.activ"
+            >
               Dezactivează
             </button>
             <button
