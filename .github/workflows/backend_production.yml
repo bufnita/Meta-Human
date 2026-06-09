@@ -5,7 +5,9 @@ on:
 
 jobs:
   deploy:
-    runs-on: production
+    runs-on:
+      - self-hosted
+      - production
 
     defaults:
       run:
