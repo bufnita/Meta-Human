@@ -23,11 +23,31 @@ export const usePacientiStore = defineStore('pacienti', () => {
   const incarcare = ref(false)
   const eroare = ref<string | null>(null)
 
+  function ordoneazaPacienti(lista: Pacient[]): Pacient[] {
+    return [...lista].sort((a, b) => {
+      if (a.activ !== b.activ) return Number(b.activ) - Number(a.activ)
+      return a.nume.localeCompare(b.nume, 'ro', { sensitivity: 'base' })
+    })
+  }
+
+  function actualizeazaStatusLocal(id: number, activ: boolean) {
+    pacienti.value = ordoneazaPacienti(
+      pacienti.value.map((p) => (p.idPacient === id ? { ...p, activ } : p)),
+    )
+    if (pacientSelectat.value?.idPacient === id) {
+      pacientSelectat.value = { ...pacientSelectat.value, activ }
+    }
+  }
+
+  async function sincronizeazaListaDinServer() {
+    pacienti.value = ordoneazaPacienti(await pacientiApi.obtineLista())
+  }
+
   async function incarcaLista() {
     incarcare.value = true
     eroare.value = null
     try {
-      pacienti.value = await pacientiApi.obtineLista()
+      await sincronizeazaListaDinServer()
     } catch (err: unknown) {
       eroare.value =
         (err as { response?: { data?: { mesaj?: string } } }).response?.data?.mesaj ||
@@ -74,6 +94,7 @@ export const usePacientiStore = defineStore('pacienti', () => {
       const actualizat = await pacientiApi.actualizeaza(id, cerere)
       const index = pacienti.value.findIndex((p) => p.idPacient === id)
       if (index !== -1) pacienti.value[index] = actualizat
+      pacientSelectat.value = await pacientiApi.obtineDetaliu(id)
       return actualizat
     } catch (err: unknown) {
       eroare.value =
@@ -89,7 +110,12 @@ export const usePacientiStore = defineStore('pacienti', () => {
     eroare.value = null
     try {
       await pacientiApi.dezactiveaza(id)
-      pacienti.value = pacienti.value.filter((p) => p.idPacient !== id)
+      actualizeazaStatusLocal(id, false)
+      try {
+        await sincronizeazaListaDinServer()
+      } catch {
+        // lista e deja actualizată local
+      }
     } catch (err: unknown) {
       eroare.value =
         (err as { response?: { data?: { mesaj?: string } } }).response?.data?.mesaj ||
@@ -99,11 +125,31 @@ export const usePacientiStore = defineStore('pacienti', () => {
     }
   }
 
-  async function stergeDefinitiv(id: number) {
+  async function activeaza(id: number) {
     incarcare.value = true
     eroare.value = null
     try {
-      await pacientiApi.stergeDefinitiv(id)
+      await pacientiApi.activeaza(id)
+      actualizeazaStatusLocal(id, true)
+      try {
+        await sincronizeazaListaDinServer()
+      } catch {
+        // lista e deja actualizată local
+      }
+    } catch (err: unknown) {
+      eroare.value =
+        (err as { response?: { data?: { mesaj?: string } } }).response?.data?.mesaj ||
+        'Eroare la activarea pacientului'
+    } finally {
+      incarcare.value = false
+    }
+  }
+
+  async function sterge(id: number) {
+    incarcare.value = true
+    eroare.value = null
+    try {
+      await pacientiApi.sterge(id)
       pacienti.value = pacienti.value.filter((p) => p.idPacient !== id)
     } catch (err: unknown) {
       eroare.value =
@@ -160,6 +206,32 @@ export const usePacientiStore = defineStore('pacienti', () => {
     }
   }
 
+  async function actualizeazaPrag(idPacient: number, idPrag: number, cerere: CererePragAlerta) {
+    eroare.value = null
+    try {
+      const pragActualizat = await pacientiApi.actualizeazaPrag(idPacient, idPrag, cerere)
+      const index = praguri.value.findIndex((p) => p.idPrag === idPrag)
+      if (index !== -1) praguri.value[index] = pragActualizat
+      return pragActualizat
+    } catch (err: unknown) {
+      eroare.value =
+        (err as { response?: { data?: { mesaj?: string } } }).response?.data?.mesaj ||
+        'Eroare la modificarea pragului'
+    }
+  }
+
+  async function stergePrag(idPacient: number, idPrag: number) {
+    eroare.value = null
+    try {
+      await pacientiApi.stergePrag(idPacient, idPrag)
+      praguri.value = praguri.value.filter((p) => p.idPrag !== idPrag)
+    } catch (err: unknown) {
+      eroare.value =
+        (err as { response?: { data?: { mesaj?: string } } }).response?.data?.mesaj ||
+        'Eroare la ștergerea pragului'
+    }
+  }
+
   async function incarcaRecomandari(id: number) {
     eroare.value = null
     try {
@@ -184,6 +256,42 @@ export const usePacientiStore = defineStore('pacienti', () => {
     }
   }
 
+  async function actualizeazaRecomandare(
+    idPacient: number,
+    idRecomandare: number,
+    cerere: CerereRecomandare,
+  ) {
+    eroare.value = null
+    try {
+      const recomandareActualizata = await pacientiApi.actualizeazaRecomandare(
+        idPacient,
+        idRecomandare,
+        cerere,
+      )
+      const index = recomandari.value.findIndex((r) => r.idRecomandare === idRecomandare)
+      if (index !== -1) recomandari.value[index] = recomandareActualizata
+      return recomandareActualizata
+    } catch (err: unknown) {
+      eroare.value =
+        (err as { response?: { data?: { mesaj?: string } } }).response?.data?.mesaj ||
+        'Eroare la modificarea recomandării'
+    }
+  }
+
+  async function stergeRecomandare(idPacient: number, idRecomandare: number) {
+    eroare.value = null
+    try {
+      await pacientiApi.stergeRecomandare(idPacient, idRecomandare)
+      recomandari.value = recomandari.value.filter((r) => r.idRecomandare !== idRecomandare)
+      return true
+    } catch (err: unknown) {
+      eroare.value =
+        (err as { response?: { data?: { mesaj?: string } } }).response?.data?.mesaj ||
+        'Eroare la ștergerea recomandării'
+      return false
+    }
+  }
+
   return {
     pacienti,
     pacientSelectat,
@@ -198,12 +306,17 @@ export const usePacientiStore = defineStore('pacienti', () => {
     creeaza,
     actualizeaza,
     dezactiveaza,
-    stergeDefinitiv,
+    activeaza,
+    sterge,
     incarcaIstoric,
     incarcaAlertePatient,
     incarcaPraguri,
     adaugaPrag,
+    actualizeazaPrag,
+    stergePrag,
     incarcaRecomandari,
     adaugaRecomandare,
+    actualizeazaRecomandare,
+    stergeRecomandare,
   }
 })

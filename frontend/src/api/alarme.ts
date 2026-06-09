@@ -12,6 +12,11 @@ export const alarmeApi = {
     return response.data
   },
 
+  async obtinePacient(): Promise<Alerta[]> {
+    const response = await api.get('/pacient/alerte')
+    return response.data
+  },
+
   async rezolva(id: number): Promise<Alerta> {
     const response = await api.put(`/alerte/${id}/rezolva`)
     return response.data

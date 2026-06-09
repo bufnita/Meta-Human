@@ -33,11 +33,15 @@ export const pacientiApi = {
   },
 
   async dezactiveaza(id: number): Promise<void> {
-    await api.delete(`/pacienti/${id}`)
+    await api.patch(`/pacienti/${id}/dezactivare`)
   },
 
-  async stergeDefinitiv(id: number): Promise<void> {
-    await api.delete(`/pacienti/${id}/definitiv`)
+  async activeaza(id: number): Promise<void> {
+    await api.patch(`/pacienti/${id}/activare`)
+  },
+
+  async sterge(id: number): Promise<void> {
+    await api.delete(`/pacienti/${id}`)
   },
 
   async obtineIstoric(id: number, ultimele = 100): Promise<IstoricMasuratori> {
@@ -60,6 +64,19 @@ export const pacientiApi = {
     return response.data
   },
 
+  async actualizeazaPrag(
+    idPacient: number,
+    idPrag: number,
+    cerere: CererePragAlerta,
+  ): Promise<PragAlerta> {
+    const response = await api.put(`/pacienti/${idPacient}/praguri/${idPrag}`, cerere)
+    return response.data
+  },
+
+  async stergePrag(idPacient: number, idPrag: number): Promise<void> {
+    await api.delete(`/pacienti/${idPacient}/praguri/${idPrag}`)
+  },
+
   async obtineRecomandari(id: number): Promise<Recomandare[]> {
     const response = await api.get(`/pacienti/${id}/recomandari`)
     return response.data
@@ -68,5 +85,21 @@ export const pacientiApi = {
   async adaugaRecomandare(id: number, cerere: CerereRecomandare): Promise<Recomandare> {
     const response = await api.post(`/pacienti/${id}/recomandari`, cerere)
     return response.data
+  },
+
+  async actualizeazaRecomandare(
+    idPacient: number,
+    idRecomandare: number,
+    cerere: CerereRecomandare,
+  ): Promise<Recomandare> {
+    const response = await api.put(
+      `/pacienti/${idPacient}/recomandari/${idRecomandare}`,
+      cerere,
+    )
+    return response.data
+  },
+
+  async stergeRecomandare(idPacient: number, idRecomandare: number): Promise<void> {
+    await api.delete(`/pacienti/${idPacient}/recomandari/${idRecomandare}`)
   },
 }

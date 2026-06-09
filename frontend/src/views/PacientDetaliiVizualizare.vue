@@ -8,6 +8,21 @@
           {{ pacientiStore.pacientSelectat.activ ? 'Activ' : 'Inactiv' }}
         </span>
       </h1>
+      <div v-if="pacientiStore.pacientSelectat" class="actiuni-antet">
+        <button class="btn-contur" @click="comutaEditare">
+          {{ editareActiva ? 'Renunță la editare' : 'Editează date pacient' }}
+        </button>
+        <button
+          v-if="pacientiStore.pacientSelectat.activ"
+          class="btn-contur-rosu"
+          @click="dezactiveazaPacient"
+        >
+          Dezactivează
+        </button>
+        <button v-else class="btn-activeaza" @click="activeazaPacient">
+          Activează
+        </button>
+      </div>
     </div>
 
     <div v-if="pacientiStore.incarcare" class="incarcare">Se încarcă...</div>
@@ -17,6 +32,76 @@
       <!-- Informații personale -->
       <div class="card">
         <h2>Informații Personale</h2>
+        <form v-if="editareActiva" class="sub-formular" @submit.prevent="salveazaPacient">
+          <div class="rand-campuri">
+            <div class="camp">
+              <label>Nume *</label>
+              <input v-model="formularPacient.nume" required />
+            </div>
+            <div class="camp">
+              <label>Prenume *</label>
+              <input v-model="formularPacient.prenume" required />
+            </div>
+          </div>
+          <div class="rand-campuri">
+            <div class="camp">
+              <label>Varsta *</label>
+              <input v-model.number="formularPacient.varsta" type="number" min="1" required />
+            </div>
+            <div class="camp">
+              <label>CNP</label>
+              <input v-model="formularPacient.cnp" maxlength="13" />
+            </div>
+          </div>
+          <div class="rand-campuri">
+            <div class="camp">
+              <label>Email *</label>
+              <input v-model="formularPacient.email" type="email" required />
+            </div>
+            <div class="camp">
+              <label>Telefon</label>
+              <input v-model="formularPacient.telefon" />
+            </div>
+          </div>
+          <div class="rand-campuri">
+            <div class="camp">
+              <label>Adresa</label>
+              <input v-model="formularPacient.adresa" />
+            </div>
+            <div class="camp">
+              <label>Profesie</label>
+              <input v-model="formularPacient.profesie" />
+            </div>
+          </div>
+          <div class="rand-campuri">
+            <div class="camp">
+              <label>Loc de munca</label>
+              <input v-model="formularPacient.locMunca" />
+            </div>
+            <div class="camp">
+              <label>ID Medic</label>
+              <input v-model.number="formularPacient.idMedic" type="number" />
+            </div>
+          </div>
+          <div class="camp">
+            <label>Istoric medical</label>
+            <textarea v-model="formularPacient.istoricMedical"></textarea>
+          </div>
+          <div class="camp">
+            <label>Alergii</label>
+            <textarea v-model="formularPacient.alergii"></textarea>
+          </div>
+          <div class="camp">
+            <label>Consultatii cardiologice</label>
+            <textarea v-model="formularPacient.consultatiiCardiologice"></textarea>
+          </div>
+          <div class="butoane-formular">
+            <button type="submit" class="btn-primar" :disabled="pacientiStore.incarcare">
+              Salveaza modificarile
+            </button>
+            <button type="button" class="btn-contur" @click="comutaEditare">Anuleaza</button>
+          </div>
+        </form>
         <div class="grid-info">
           <div class="rand-info">
             <span class="eticheta">CNP</span>
@@ -132,13 +217,14 @@
       <div class="card">
         <div class="antet-card">
           <h2>Praguri de Alertă</h2>
-          <button class="btn-contur" @click="arataFormularPrag = !arataFormularPrag">
+          <button class="btn-contur" @click="comutaFormularPrag">
             {{ arataFormularPrag ? 'Anulează' : '+ Adaugă Prag' }}
           </button>
         </div>
 
         <div v-if="arataFormularPrag" class="sub-formular">
-          <form @submit.prevent="adaugaPrag">
+          <h3>{{ pragEditatId === null ? 'Prag nou' : 'Modifică pragul' }}</h3>
+          <form @submit.prevent="salveazaPrag">
             <div class="rand-campuri">
               <div class="camp">
                 <label>Tip parametru *</label>
@@ -163,7 +249,9 @@
               <input v-model="formularPrag.activ" type="checkbox" id="pragActiv" />
               <label for="pragActiv">Activ</label>
             </div>
-            <button type="submit" class="btn-primar">Salvează Prag</button>
+            <button type="submit" class="btn-primar">
+              {{ pragEditatId === null ? 'Salvează Prag' : 'Salvează Modificările' }}
+            </button>
           </form>
         </div>
 
@@ -175,6 +263,7 @@
               <th>Max</th>
               <th>Durată (sec)</th>
               <th>Activ</th>
+              <th class="coloana-actiuni">Acțiuni</th>
             </tr>
           </thead>
           <tbody>
@@ -188,6 +277,10 @@
                   {{ prag.activ ? 'Da' : 'Nu' }}
                 </span>
               </td>
+              <td class="td-actiuni">
+                <button class="btn-contur" @click="incepeEditarePrag(prag)">Modifică</button>
+                <button class="btn-contur-rosu" @click="stergePrag(prag.idPrag)">Șterge</button>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -198,13 +291,14 @@
       <div class="card">
         <div class="antet-card">
           <h2>Recomandări</h2>
-          <button class="btn-contur" @click="arataFormularRecomandare = !arataFormularRecomandare">
+          <button class="btn-contur" @click="comutaFormularRecomandare">
             {{ arataFormularRecomandare ? 'Anulează' : '+ Adaugă Recomandare' }}
           </button>
         </div>
 
         <div v-if="arataFormularRecomandare" class="sub-formular">
-          <form @submit.prevent="adaugaRecomandare">
+          <h3>{{ recomandareEditataId === null ? 'Recomandare nouă' : 'Modifică recomandarea' }}</h3>
+          <form @submit.prevent="salveazaRecomandare">
             <div class="rand-campuri">
               <div class="camp">
                 <label>Tip activitate *</label>
@@ -230,7 +324,7 @@
               <input v-model="formularRec.alteIndicatii" />
             </div>
             <button type="submit" class="btn-primar" style="margin-top: 0.5rem">
-              Salvează Recomandare
+              {{ recomandareEditataId === null ? 'Salvează Recomandare' : 'Salvează Modificările' }}
             </button>
           </form>
         </div>
@@ -244,6 +338,7 @@
               <th>De la</th>
               <th>Până la</th>
               <th>Stare</th>
+              <th class="coloana-actiuni">Acțiuni</th>
             </tr>
           </thead>
           <tbody>
@@ -254,6 +349,12 @@
               <td>{{ rec.dataInceput }}</td>
               <td>{{ rec.dataSfarsit ?? '-' }}</td>
               <td>{{ rec.stare }}</td>
+              <td class="td-actiuni">
+                <button class="btn-contur" @click="incepeEditareRecomandare(rec)">Modifică</button>
+                <button class="btn-contur-rosu" @click="stergeRecomandare(rec.idRecomandare)">
+                  Șterge
+                </button>
+              </td>
             </tr>
           </tbody>
         </table>
@@ -267,6 +368,7 @@
 import { ref, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePacientiStore } from '../stores/pacienti'
+import type { PragAlerta, Recomandare } from '../types'
 
 const route = useRoute()
 const router = useRouter()
@@ -275,7 +377,27 @@ const pacientiStore = usePacientiStore()
 const pacientId = Number(route.params.id)
 const numarMasuratori = ref(10)
 const arataFormularPrag = ref(false)
+const pragEditatId = ref<number | null>(null)
 const arataFormularRecomandare = ref(false)
+const recomandareEditataId = ref<number | null>(null)
+const editareActiva = ref(false)
+
+const formularPacientGol = () => ({
+  idMedic: undefined as number | undefined,
+  nume: '',
+  prenume: '',
+  varsta: 1,
+  cnp: '',
+  adresa: '',
+  telefon: '',
+  email: '',
+  profesie: '',
+  locMunca: '',
+  istoricMedical: '',
+  alergii: '',
+  consultatiiCardiologice: '',
+})
+const formularPacient = ref(formularPacientGol())
 
 const formularPragGol = () => ({
   tipParametru: '',
@@ -297,38 +419,186 @@ const formularRec = ref(formularRecGol())
 
 onMounted(async () => {
   await pacientiStore.incarcaDetaliu(pacientId)
+  pregatesteFormularPacient()
   await pacientiStore.incarcaIstoric(pacientId, numarMasuratori.value)
   await pacientiStore.incarcaAlertePatient(pacientId)
   await pacientiStore.incarcaPraguri(pacientId)
   await pacientiStore.incarcaRecomandari(pacientId)
 })
 
+function pregatesteFormularPacient() {
+  const pacient = pacientiStore.pacientSelectat
+  if (!pacient) return
+
+  formularPacient.value = {
+    idMedic: pacient.idMedic,
+    nume: pacient.nume,
+    prenume: pacient.prenume,
+    varsta: pacient.varsta,
+    cnp: pacient.cnp || '',
+    adresa: pacient.adresa || '',
+    telefon: pacient.telefon || '',
+    email: pacient.email || '',
+    profesie: pacient.profesie || '',
+    locMunca: pacient.locMunca || '',
+    istoricMedical: pacient.istoricMedical || '',
+    alergii: pacient.alergii || '',
+    consultatiiCardiologice: pacient.consultatiiCardiologice || '',
+  }
+}
+
+function comutaEditare() {
+  editareActiva.value = !editareActiva.value
+  if (editareActiva.value) {
+    pregatesteFormularPacient()
+  }
+}
+
+async function dezactiveazaPacient() {
+  if (confirm('Ești sigur că vrei să dezactivezi acest pacient?')) {
+    await pacientiStore.dezactiveaza(pacientId)
+    if (!pacientiStore.eroare) {
+      await pacientiStore.incarcaDetaliu(pacientId)
+    }
+  }
+}
+
+async function activeazaPacient() {
+  if (confirm('Ești sigur că vrei să reactivezi acest pacient?')) {
+    await pacientiStore.activeaza(pacientId)
+    if (!pacientiStore.eroare) {
+      await pacientiStore.incarcaDetaliu(pacientId)
+    }
+  }
+}
+
+async function salveazaPacient() {
+  await pacientiStore.actualizeaza(pacientId, {
+    ...formularPacient.value,
+    cnp: formularPacient.value.cnp || undefined,
+    adresa: formularPacient.value.adresa || undefined,
+    telefon: formularPacient.value.telefon || undefined,
+    profesie: formularPacient.value.profesie || undefined,
+    locMunca: formularPacient.value.locMunca || undefined,
+    istoricMedical: formularPacient.value.istoricMedical || undefined,
+    alergii: formularPacient.value.alergii || undefined,
+    consultatiiCardiologice: formularPacient.value.consultatiiCardiologice || undefined,
+  })
+  if (!pacientiStore.eroare) {
+    editareActiva.value = false
+    pregatesteFormularPacient()
+  }
+}
+
 async function reincarcaIstoric() {
   await pacientiStore.incarcaIstoric(pacientId, numarMasuratori.value)
 }
 
-async function adaugaPrag() {
-  await pacientiStore.adaugaPrag(pacientId, {
+function comutaFormularPrag() {
+  if (arataFormularPrag.value) {
+    inchideFormularPrag()
+    return
+  }
+
+  arataFormularPrag.value = true
+}
+
+function inchideFormularPrag() {
+  arataFormularPrag.value = false
+  pragEditatId.value = null
+  formularPrag.value = formularPragGol()
+}
+
+function incepeEditarePrag(prag: PragAlerta) {
+  pragEditatId.value = prag.idPrag
+  formularPrag.value = {
+    tipParametru: prag.tipParametru,
+    valoareMinima: prag.valoareMinima ?? undefined,
+    valoareMaxima: prag.valoareMaxima ?? undefined,
+    durataPersistentaSec: prag.durataPersistentaSec,
+    activ: prag.activ,
+  }
+  arataFormularPrag.value = true
+}
+
+async function salveazaPrag() {
+  const cerere = {
     ...formularPrag.value,
     durataPersistentaSec: formularPrag.value.durataPersistentaSec,
-  })
+  }
+
+  if (pragEditatId.value === null) {
+    await pacientiStore.adaugaPrag(pacientId, cerere)
+  } else {
+    await pacientiStore.actualizeazaPrag(pacientId, pragEditatId.value, cerere)
+  }
+
   if (!pacientiStore.eroare) {
-    arataFormularPrag.value = false
-    formularPrag.value = formularPragGol()
+    inchideFormularPrag()
   }
 }
 
-async function adaugaRecomandare() {
-  await pacientiStore.adaugaRecomandare(pacientId, {
+async function stergePrag(idPrag: number) {
+  if (confirm('Ești sigur că vrei să ștergi acest prag de alertă?')) {
+    await pacientiStore.stergePrag(pacientId, idPrag)
+    if (!pacientiStore.eroare && pragEditatId.value === idPrag) {
+      inchideFormularPrag()
+    }
+  }
+}
+
+function comutaFormularRecomandare() {
+  if (arataFormularRecomandare.value) {
+    inchideFormularRecomandare()
+    return
+  }
+
+  arataFormularRecomandare.value = true
+}
+
+function inchideFormularRecomandare() {
+  arataFormularRecomandare.value = false
+  recomandareEditataId.value = null
+  formularRec.value = formularRecGol()
+}
+
+function incepeEditareRecomandare(recomandare: Recomandare) {
+  recomandareEditataId.value = recomandare.idRecomandare
+  formularRec.value = {
+    tipActivitate: recomandare.tipActivitate,
+    durataZilnica: recomandare.durataZilnica ?? '',
+    alteIndicatii: recomandare.alteIndicatii ?? '',
+    dataInceput: recomandare.dataInceput,
+    dataSfarsit: recomandare.dataSfarsit ?? '',
+  }
+  arataFormularRecomandare.value = true
+}
+
+async function salveazaRecomandare() {
+  const cerere = {
     tipActivitate: formularRec.value.tipActivitate,
     durataZilnica: formularRec.value.durataZilnica || undefined,
     alteIndicatii: formularRec.value.alteIndicatii || undefined,
     dataInceput: formularRec.value.dataInceput,
     dataSfarsit: formularRec.value.dataSfarsit || undefined,
-  })
-  if (!pacientiStore.eroare) {
-    arataFormularRecomandare.value = false
-    formularRec.value = formularRecGol()
+  }
+
+  const recomandareSalvata =
+    recomandareEditataId.value === null
+      ? await pacientiStore.adaugaRecomandare(pacientId, cerere)
+      : await pacientiStore.actualizeazaRecomandare(pacientId, recomandareEditataId.value, cerere)
+
+  if (recomandareSalvata) {
+    inchideFormularRecomandare()
+  }
+}
+
+async function stergeRecomandare(idRecomandare: number) {
+  if (confirm('Ești sigur că vrei să ștergi această recomandare?')) {
+    const recomandareStearsa = await pacientiStore.stergeRecomandare(pacientId, idRecomandare)
+    if (recomandareStearsa && recomandareEditataId.value === idRecomandare) {
+      inchideFormularRecomandare()
+    }
   }
 }
 </script>
@@ -350,6 +620,14 @@ async function adaugaRecomandare() {
   flex-wrap: wrap;
 }
 
+.actiuni-antet {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-left: auto;
+}
+
 h1 {
   font-size: 1.6rem;
   color: #2d3748;
@@ -368,8 +646,8 @@ h2 {
 .btn-inapoi {
   padding: 0.5rem 1rem;
   background-color: white;
-  color: #2d7d46;
-  border: 2px solid #2d7d46;
+  color: #0047AB;
+  border: 2px solid #0047AB;
   border-radius: 8px;
   font-size: 0.9rem;
   font-weight: 600;
@@ -377,33 +655,56 @@ h2 {
   transition: background-color 0.2s, color 0.2s;
   white-space: nowrap;
 }
-.btn-inapoi:hover { background-color: #2d7d46; color: white; }
+.btn-inapoi:hover { background-color: #0047AB; color: white; }
 
 .btn-primar {
   padding: 0.5rem 1.2rem;
-  background-color: #2d7d46;
+  background-color: #0047AB;
   color: white;
-  border: 2px solid #2d7d46;
+  border: 2px solid #0047AB;
   border-radius: 8px;
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.2s;
 }
-.btn-primar:hover { background-color: #245f37; }
+.btn-primar:hover { background-color: #00357f; }
 
 .btn-contur {
   padding: 0.4rem 0.9rem;
   background-color: white;
-  color: #2d7d46;
-  border: 2px solid #2d7d46;
+  color: #0047AB;
+  border: 2px solid #0047AB;
   border-radius: 8px;
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   transition: background-color 0.2s, color 0.2s;
 }
-.btn-contur:hover { background-color: #2d7d46; color: white; }
+.btn-contur:hover { background-color: #0047AB; color: white; }
+
+.btn-contur-rosu {
+  padding: 0.4rem 0.9rem;
+  background-color: white;
+  color: #e74c3c;
+  border: 2px solid #e74c3c;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-contur-rosu:hover { background-color: #e74c3c; color: white; }
+
+.td-actiuni {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  white-space: nowrap;
+}
+
+.coloana-actiuni {
+  text-align: right;
+}
 
 .badge-activ {
   background-color: #c6f6d5;
@@ -430,7 +731,7 @@ h2 {
   padding: 1.5rem 2rem;
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  border-top: 4px solid #2d7d46;
+  border-top: 4px solid #0047AB;
 }
 
 .antet-card {
@@ -443,22 +744,26 @@ h2 {
 
 .grid-info {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 0.5rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem 1.5rem;
 }
 
 .rand-info {
   display: flex;
-  gap: 0.75rem;
-  padding: 0.4rem 0;
-  border-bottom: 1px solid #f0f4f8;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background-color: #f8fbff;
 }
 
 .eticheta {
-  font-weight: 600;
-  color: #2d7d46;
-  min-width: 140px;
-  font-size: 0.9rem;
+  font-weight: 700;
+  color: #0047AB;
+  font-size: 0.82rem;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .sub-formular {
@@ -481,7 +786,8 @@ h2 {
   color: #2d3748;
 }
 
-.camp input {
+.camp input,
+.camp textarea {
   width: 100%;
   padding: 0.55rem 0.75rem;
   border: 2px solid #e2e8f0;
@@ -490,8 +796,20 @@ h2 {
   box-sizing: border-box;
   outline: none;
   transition: border-color 0.2s;
+  font-family: inherit;
 }
-.camp input:focus { border-color: #2d7d46; }
+.camp textarea {
+  min-height: 72px;
+  resize: vertical;
+}
+.camp input:focus,
+.camp textarea:focus { border-color: #0047AB; }
+
+.butoane-formular {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
 
 .camp-checkbox {
   display: flex;
@@ -509,7 +827,7 @@ table {
 }
 
 th {
-  background-color: #2d7d46;
+  background-color: #0047AB;
   color: white;
   padding: 0.75rem;
   text-align: left;
@@ -526,7 +844,7 @@ td {
 
 tbody tr:nth-child(odd) td { background-color: #ffffff; }
 tbody tr:nth-child(even) td { background-color: #f7f9fb; }
-tbody tr:hover td { background-color: #e8f5ee; }
+tbody tr:hover td { background-color: #eaf1ff; }
 
 .row-activa td { background-color: #fff8e1 !important; }
 
@@ -554,7 +872,7 @@ tbody tr:hover td { background-color: #e8f5ee; }
     padding: 0.75rem;
     margin-bottom: 0.75rem;
     box-shadow: 0 1px 4px rgba(0,0,0,0.06);
-    border-left: 3px solid #2d7d46;
+    border-left: 3px solid #0047AB;
   }
   tbody tr:nth-child(even) td,
   tbody tr:nth-child(odd) td,

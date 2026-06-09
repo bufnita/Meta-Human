@@ -19,7 +19,8 @@ public class MedicService
     {
         var medici = await _context.Medici
             .Include(m => m.Utilizator)
-            .OrderBy(m => m.Nume)
+            .OrderByDescending(m => m.Utilizator.Activ)
+            .ThenBy(m => m.Nume)
             .ToListAsync(cancellationToken);
 
         return medici.Select(MapLaRaspuns).ToList();
@@ -110,7 +111,28 @@ public class MedicService
         if (medic == null)
             throw new ResursaNegasitaException("Medicul nu a fost găsit.");
 
+        if (!medic.Utilizator.Activ)
+            throw new InvalidOperationException("Medicul este deja inactiv.");
+
         medic.Utilizator.Activ = false;
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task ActiveazaAsync(
+        int idMedic,
+        CancellationToken cancellationToken = default)
+    {
+        var medic = await _context.Medici
+            .Include(m => m.Utilizator)
+            .FirstOrDefaultAsync(m => m.IdMedic == idMedic, cancellationToken);
+
+        if (medic == null)
+            throw new ResursaNegasitaException("Medicul nu a fost găsit.");
+
+        if (medic.Utilizator.Activ)
+            throw new InvalidOperationException("Medicul este deja activ.");
+
+        medic.Utilizator.Activ = true;
         await _context.SaveChangesAsync(cancellationToken);
     }
 
@@ -168,6 +190,7 @@ public class MedicService
         Prenume = medic.Prenume,
         Email = medic.Utilizator.Email,
         Specializare = medic.Specializare,
-        Telefon = medic.Telefon
+        Telefon = medic.Telefon,
+        Activ = medic.Utilizator.Activ
     };
 }

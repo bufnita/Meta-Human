@@ -21,14 +21,17 @@ Referință pentru toate rutele REST: ce face fiecare, cine o poate apela, ce JS
 | **Medic** | Gestionează proprii pacienți; alerte globale |
 | **Pacient** | Trimite măsurători/ECG; își vede propriul istoric |
 
-### Dezactivare vs ștergere definitivă
+### Status cont: dezactivare, reactivare, ștergere
 
-| Acțiune | Efect |
-|---------|--------|
-| **Dezactivare** (`DELETE` fără `/definitiv`) | Cont oprit (`Activ = false`), date păstrate, legătura medic–pacient **rămâne** |
-| **Ștergere definitivă** (`DELETE .../definitiv`) | Tot șters din DB — **doar Admin** |
-| **Reatribuire medic** | Admin face `PUT /api/pacienti/{id}` cu alt `idMedic` |
-| **Ștergere medic definitiv** | Posibilă doar dacă **zero** pacienți (inclusiv dezactivați) |
+| Acțiune | Rută | Efect |
+|---------|------|--------|
+| **Dezactivare** | `PATCH .../dezactivare` | Cont oprit (`Activ = false`), date păstrate, legătura medic–pacient **rămâne** |
+| **Reactivare** | `PATCH .../activare` | Cont repornit (`Activ = true`) |
+| **Ștergere** | `DELETE /api/pacienti\|medici/{id}` | Tot șters din DB — **doar Admin** |
+| **Reatribuire medic** | `PUT /api/pacienti/{id}` cu alt `idMedic` | Admin reatribuie pacientul |
+| **Ștergere medic** | Posibilă doar dacă **zero** pacienți (inclusiv dezactivați) |
+
+Lista pacienților/medici: **activi** întâi (A→Z după nume), apoi **inactivi** (A→Z).
 
 ---
 
@@ -141,15 +144,23 @@ Email duplicat → **400**.
 
 **Primești (200):** medicul actualizat (`RaspunsMedicDTO`).
 
-### `DELETE /api/medici/{id}`
+### `PATCH /api/medici/{id}/dezactivare`
 
-**Ce face:** **Dezactivează** medicul (soft delete). Contul devine inactiv — nu se mai poate loga. Rândul medic rămâne în DB; pacienții **rămân legați** de el.
+**Ce face:** Dezactivează medicul. Contul devine inactiv — nu se mai poate loga. Rândul medic rămâne în DB; pacienții **rămân legați** de el.
 
 **Trimite:** —
 
 **Primești:** **204** (fără body).
 
-### `DELETE /api/medici/{id}/definitiv`
+### `PATCH /api/medici/{id}/activare`
+
+**Ce face:** Reactivează medicul (`Utilizator.Activ = true`).
+
+**Trimite:** —
+
+**Primești:** **204** sau **400** (deja activ) / **404**.
+
+### `DELETE /api/medici/{id}`
 
 **Ce face:** **Șterge definitiv** medicul din baza de date (cont, sesiuni, alerte/recomandări/praguri orfane ale medicului).
 
@@ -163,7 +174,7 @@ Email duplicat → **400**.
 
 ## Pacienți — Medic sau Admin
 
-Toate rutele necesită JWT cu rol **Medic** sau **Admin**, exceptând `/definitiv` (doar Admin).
+Toate rutele necesită JWT cu rol **Medic** sau **Admin**, exceptând `DELETE` (ștergere definitivă — doar Admin).
 
 ### `GET /api/pacienti`
 
@@ -258,9 +269,9 @@ Toate rutele necesită JWT cu rol **Medic** sau **Admin**, exceptând `/definiti
 
 **Primești (200):** pacient actualizat (`RaspunsPacientDTO`).
 
-### `DELETE /api/pacienti/{id}`
+### `PATCH /api/pacienti/{id}/dezactivare`
 
-**Ce face:** **Dezactivează** pacientul (soft delete). Pacientul + contul devin inactive. **Medicul rămâne același** (`idMedic` nu se schimbă).
+**Ce face:** Dezactivează pacientul. Pacientul + contul devin inactive. **Medicul rămâne același** (`idMedic` nu se schimbă).
 
 - **Medic:** doar pacienții lui.
 - **Admin:** orice pacient.
@@ -269,7 +280,18 @@ Toate rutele necesită JWT cu rol **Medic** sau **Admin**, exceptând `/definiti
 
 **Primești:** **204**.
 
-### `DELETE /api/pacienti/{id}/definitiv`
+### `PATCH /api/pacienti/{id}/activare`
+
+**Ce face:** Reactivează pacientul (`Pacient.Activ` + `Utilizator.Activ = true`).
+
+- **Medic:** doar pacienții lui.
+- **Admin:** orice pacient.
+
+**Trimite:** —
+
+**Primești:** **204** sau **400** (deja activ) / **404**.
+
+### `DELETE /api/pacienti/{id}`
 
 **Ce face:** **Șterge definitiv** pacientul din DB: măsurători, ECG, alerte, praguri, recomandări, dispozitive, cont login — tot ce ține de el.
 
@@ -370,6 +392,24 @@ Toate rutele necesită JWT cu rol **Medic** sau **Admin**, exceptând `/definiti
 
 **Primești (201):** pragul creat (`RaspunsPragAlertaDTO`).
 
+### `PUT /api/pacienti/{id}/praguri/{idPrag}`
+
+**Ce face:** Actualizează un prag de alertă existent al pacientului.
+
+**Cine:** Medicul responsabil sau Admin.
+
+**Trimite:** același body ca la `POST /api/pacienti/{id}/praguri`.
+
+**Primești (200):** pragul actualizat (`RaspunsPragAlertaDTO`).
+
+### `DELETE /api/pacienti/{id}/praguri/{idPrag}`
+
+**Ce face:** Șterge definitiv pragul de alertă selectat.
+
+**Cine:** Medicul responsabil sau Admin.
+
+**Primești:** **204** (fără body).
+
 ### `GET /api/pacienti/{id}/recomandari`
 
 **Ce face:** Recomandările medicului pentru pacient (activitate, durată, perioadă).
@@ -408,6 +448,24 @@ Toate rutele necesită JWT cu rol **Medic** sau **Admin**, exceptând `/definiti
 ```
 
 **Primești (201):** recomandarea creată (`RaspunsRecomandareDTO`).
+
+### `PUT /api/pacienti/{id}/recomandari/{idRecomandare}`
+
+**Ce face:** Actualizează o recomandare existentă a pacientului.
+
+**Cine:** Medicul responsabil sau Admin.
+
+**Trimite:** același body ca la `POST /api/pacienti/{id}/recomandari`.
+
+**Primești (200):** recomandarea actualizată (`RaspunsRecomandareDTO`).
+
+### `DELETE /api/pacienti/{id}/recomandari/{idRecomandare}`
+
+**Ce face:** Șterge definitiv recomandarea selectată.
+
+**Cine:** Medicul responsabil sau Admin.
+
+**Primești:** **204** (fără body).
 
 ---
 

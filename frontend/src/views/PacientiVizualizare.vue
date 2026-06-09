@@ -2,7 +2,7 @@
   <div class="pacienti">
     <div class="antet">
       <h1>Pacienți</h1>
-      <button class="btn-primar" @click="arataFormular = true">Adaugă Pacient</button>
+      <button class="btn-primar" @click="deschideFormular">Adaugă Pacient</button>
     </div>
 
     <div v-if="pacientiStore.incarcare">Se încarcă...</div>
@@ -62,10 +62,16 @@
             <input v-model="formular.locMunca" />
           </div>
         </div>
-        <!-- idMedic doar pentru Admin -->
+        <!-- Dropdown medici doar pentru Admin -->
         <div v-if="utilizatorStore.esteAdmin" class="camp">
-          <label>ID Medic *</label>
-          <input v-model.number="formular.idMedic" type="number" required />
+          <label>Medic *</label>
+          <div v-if="seIncarcaMedici" class="medici-loading">Se încarcă medicii...</div>
+          <select v-else v-model.number="formular.idMedic" required class="select-medic">
+            <option :value="undefined" disabled>— Selectează medicul —</option>
+            <option v-for="medic in medici" :key="medic.idMedic" :value="medic.idMedic">
+              #{{ medic.idMedic }} — {{ medic.nume }} {{ medic.prenume }} ({{ medic.email }})
+            </option>
+          </select>
         </div>
         <div class="butoane-formular">
           <button type="submit" class="btn-primar" :disabled="pacientiStore.incarcare">
@@ -85,7 +91,7 @@
           <th>Vârstă</th>
           <th>Telefon</th>
           <th>Email</th>
-          <th>Activ</th>
+          <th>Status</th>
           <th>Acțiuni</th>
         </tr>
       </thead>
@@ -100,7 +106,7 @@
           <td data-label="Vârstă">{{ pacient.varsta }}</td>
           <td data-label="Telefon">{{ pacient.telefon ?? '-' }}</td>
           <td data-label="Email">{{ pacient.email ?? '-' }}</td>
-          <td data-label="Activ">
+          <td data-label="Status">
             <span :class="pacient.activ ? 'badge-activ' : 'badge-inactiv'">
               {{ pacient.activ ? 'Activ' : 'Inactiv' }}
             </span>
@@ -109,13 +115,24 @@
             <button class="btn-contur" @click="router.push(`/pacienti/${pacient.idPacient}`)">
               Detalii
             </button>
-            <button class="btn-contur-rosu" @click="dezactiveazaPacient(pacient.idPacient)">
+            <button
+              v-if="pacient.activ"
+              class="btn-contur-rosu"
+              @click="dezactiveazaPacient(pacient.idPacient)"
+            >
               Dezactivează
+            </button>
+            <button
+              v-else
+              class="btn-activeaza"
+              @click="activeazaPacient(pacient.idPacient)"
+            >
+              Activează
             </button>
             <button
               v-if="utilizatorStore.esteAdmin"
               class="btn-contur-rosu"
-              @click="stergeDefinitiv(pacient.idPacient)"
+              @click="stergePacient(pacient.idPacient)"
             >
               Șterge
             </button>
@@ -132,12 +149,16 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { usePacientiStore } from '../stores/pacienti'
 import { useUtilizatorStore } from '../stores/utilizator'
+import { mediciApi } from '../api/medici'
+import type { Medic } from '../types'
 
 const router = useRouter()
 const pacientiStore = usePacientiStore()
 const utilizatorStore = useUtilizatorStore()
 
 const arataFormular = ref(false)
+const medici = ref<Medic[]>([])
+const seIncarcaMedici = ref(false)
 
 const formularGol = () => ({
   nume: '',
@@ -158,6 +179,20 @@ const formular = ref(formularGol())
 onMounted(() => {
   pacientiStore.incarcaLista()
 })
+
+async function deschideFormular() {
+  arataFormular.value = true
+  if (utilizatorStore.esteAdmin && medici.value.length === 0) {
+    seIncarcaMedici.value = true
+    try {
+      medici.value = await mediciApi.obtineToti()
+    } catch {
+      // eroare silentioasa
+    } finally {
+      seIncarcaMedici.value = false
+    }
+  }
+}
 
 async function adaugaPacient() {
   const cerere = {
@@ -186,9 +221,17 @@ async function dezactiveazaPacient(id: number) {
   }
 }
 
-async function stergeDefinitiv(id: number) {
-  if (confirm('Ești sigur că vrei să ȘTERGI DEFINITIV acest pacient? Acțiunea este ireversibilă!')) {
-    await pacientiStore.stergeDefinitiv(id)
+async function activeazaPacient(id: number) {
+  if (confirm('Ești sigur că vrei să reactivezi acest pacient?')) {
+    await pacientiStore.activeaza(id)
+  }
+}
+
+async function stergePacient(id: number) {
+  if (
+    confirm('Ești sigur că vrei să ȘTERGI DEFINITIV acest pacient? Acțiunea este ireversibilă!')
+  ) {
+    await pacientiStore.sterge(id)
   }
 }
 </script>
@@ -209,35 +252,52 @@ async function stergeDefinitiv(id: number) {
   border-bottom: 2px solid #e2e8f0;
 }
 
-h1 { font-size: 1.8rem; color: #2d3748; }
-h2 { font-size: 1.2rem; color: #2d3748; margin-bottom: 1.2rem; }
+h1 {
+  font-size: 1.8rem;
+  color: #2d3748;
+}
+h2 {
+  font-size: 1.2rem;
+  color: #2d3748;
+  margin-bottom: 1.2rem;
+}
 
 .btn-primar {
   padding: 0.5rem 1.2rem;
   background-color: white;
-  color: #2d7d46;
-  border: 2px solid #2d7d46;
+  color: #0047ab;
+  border: 2px solid #0047ab;
   border-radius: 8px;
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  transition: background-color 0.2s, color 0.2s;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
 }
-.btn-primar:hover { background-color: #2d7d46; color: white; }
+.btn-primar:hover {
+  background-color: #0047ab;
+  color: white;
+}
 
 .btn-contur {
   padding: 0.4rem 0.9rem;
   background-color: white;
-  color: #2d7d46;
-  border: 2px solid #2d7d46;
+  color: #0047ab;
+  border: 2px solid #0047ab;
   border-radius: 8px;
   font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   margin-right: 0.4rem;
-  transition: background-color 0.2s, color 0.2s;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
 }
-.btn-contur:hover { background-color: #2d7d46; color: white; }
+.btn-contur:hover {
+  background-color: #0047ab;
+  color: white;
+}
 
 .btn-contur-rosu {
   padding: 0.4rem 0.9rem;
@@ -249,9 +309,14 @@ h2 { font-size: 1.2rem; color: #2d3748; margin-bottom: 1.2rem; }
   font-weight: 600;
   cursor: pointer;
   margin-right: 0.4rem;
-  transition: background-color 0.2s, color 0.2s;
+  transition:
+    background-color 0.2s,
+    color 0.2s;
 }
-.btn-contur-rosu:hover { background-color: #e74c3c; color: white; }
+.btn-contur-rosu:hover {
+  background-color: #e74c3c;
+  color: white;
+}
 
 .formular-container {
   background: white;
@@ -259,12 +324,18 @@ h2 { font-size: 1.2rem; color: #2d3748; margin-bottom: 1.2rem; }
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   margin-bottom: 1.5rem;
-  border-top: 4px solid #2d7d46;
+  border-top: 4px solid #0047ab;
 }
 
-.rand-campuri { display: flex; gap: 1rem; }
+.rand-campuri {
+  display: flex;
+  gap: 1rem;
+}
 
-.camp { flex: 1; margin-bottom: 1rem; }
+.camp {
+  flex: 1;
+  margin-bottom: 1rem;
+}
 
 .camp label {
   display: block;
@@ -274,7 +345,8 @@ h2 { font-size: 1.2rem; color: #2d3748; margin-bottom: 1.2rem; }
   color: #2d3748;
 }
 
-.camp input {
+.camp input,
+.select-medic {
   width: 100%;
   padding: 0.6rem 0.8rem;
   border: 2px solid #e2e8f0;
@@ -283,10 +355,25 @@ h2 { font-size: 1.2rem; color: #2d3748; margin-bottom: 1.2rem; }
   box-sizing: border-box;
   outline: none;
   transition: border-color 0.2s;
+  background-color: white;
+  color: #2d3748;
 }
-.camp input:focus { border-color: #2d7d46; }
+.camp input:focus,
+.select-medic:focus {
+  border-color: #0047ab;
+}
 
-.butoane-formular { display: flex; gap: 1rem; margin-top: 0.5rem; }
+.medici-loading {
+  padding: 0.6rem 0.8rem;
+  color: #718096;
+  font-size: 0.9rem;
+}
+
+.butoane-formular {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
 
 table {
   width: 100%;
@@ -298,7 +385,7 @@ table {
 }
 
 th {
-  background-color: #2d7d46;
+  background-color: #0047ab;
   color: white;
   padding: 0.9rem 0.75rem;
   text-align: left;
@@ -313,13 +400,23 @@ td {
   color: #2d3748;
 }
 
-.td-actiuni { white-space: nowrap; }
+.td-actiuni {
+  white-space: nowrap;
+}
 
-tbody tr:nth-child(odd) td { background-color: #ffffff; }
-tbody tr:nth-child(even) td { background-color: #f7f9fb; }
-tbody tr:hover td { background-color: #e8f5ee; }
+tbody tr:nth-child(odd) td {
+  background-color: #ffffff;
+}
+tbody tr:nth-child(even) td {
+  background-color: #f7f9fb;
+}
+tbody tr:hover td {
+  background-color: #eaf1ff;
+}
 
-tr.inactiv td { color: #a0aec0; }
+tr.inactiv td {
+  color: #a0aec0;
+}
 
 .badge-activ {
   background-color: #c6f6d5;
@@ -350,25 +447,44 @@ tr.inactiv td { color: #a0aec0; }
 }
 
 @media (max-width: 640px) {
-  .pacienti { padding: 1.5rem 1rem; }
-  .rand-campuri { flex-direction: column; gap: 0; }
-  table thead { display: none; }
-  table, tbody, tr, td { display: block; width: 100%; }
-  table { background: transparent; box-shadow: none; border-radius: 0; }
+  .pacienti {
+    padding: 1.5rem 1rem;
+  }
+  .rand-campuri {
+    flex-direction: column;
+    gap: 0;
+  }
+  table thead {
+    display: none;
+  }
+  table,
+  tbody,
+  tr,
+  td {
+    display: block;
+    width: 100%;
+  }
+  table {
+    background: transparent;
+    box-shadow: none;
+    border-radius: 0;
+  }
   tbody tr {
     background: white !important;
     border-radius: 12px;
     padding: 1rem;
     margin-bottom: 1rem;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-    border-top: 4px solid #2d7d46;
+    border-top: 4px solid #0047ab;
     border-left: 1px solid #e2e8f0;
     border-right: 1px solid #e2e8f0;
     border-bottom: 1px solid #e2e8f0;
   }
   tbody tr:nth-child(even) td,
   tbody tr:nth-child(odd) td,
-  tbody tr:hover td { background: transparent !important; }
+  tbody tr:hover td {
+    background: transparent !important;
+  }
   td {
     padding: 0.35rem 0;
     border: none;
@@ -377,9 +493,24 @@ tr.inactiv td { color: #a0aec0; }
     justify-content: space-between;
     border-bottom: 1px solid #f0f4f8;
   }
-  td:last-child { border-bottom: none; }
-  td::before { content: attr(data-label); font-weight: 600; color: #2d7d46; font-size: 0.85rem; }
-  .td-actiuni { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 0.5rem; margin-top: 0.5rem; }
-  .td-actiuni::before { display: none; }
+  td:last-child {
+    border-bottom: none;
+  }
+  td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #0047ab;
+    font-size: 0.85rem;
+  }
+  .td-actiuni {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+  }
+  .td-actiuni::before {
+    display: none;
+  }
 }
 </style>

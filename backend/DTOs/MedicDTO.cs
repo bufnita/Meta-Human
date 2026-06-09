@@ -36,6 +36,7 @@ public class RaspunsMedicDTO
     public string Email { get; set; } = string.Empty;
     public string? Specializare { get; set; }
     public string? Telefon { get; set; }
+    public bool Activ { get; set; }
 }
 
 public class CerereActualizareMedicDTO

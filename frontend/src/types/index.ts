@@ -5,6 +5,7 @@ export interface Utilizator {
   rol: string
   nume: string
   prenume: string
+  idPacient?: number | null
 }
 
 export interface CerereLogin {
@@ -20,6 +21,7 @@ export interface Medic {
   email: string
   specializare?: string | null
   telefon?: string | null
+  activ: boolean
 }
 
 export interface CerereMedic {
@@ -81,6 +83,9 @@ export interface CererePacient {
   parola?: string
   profesie?: string
   locMunca?: string
+  istoricMedical?: string
+  alergii?: string
+  consultatiiCardiologice?: string
 }
 
 // ── Măsurători ─────────────────────────────────────────────────────

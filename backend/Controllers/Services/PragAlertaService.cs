@@ -61,6 +61,37 @@ public class PragAlertaService
         return praguri.Select(MapLaRaspuns).ToList();
     }
 
+    public async Task<RaspunsPragAlertaDTO> ActualizeazaAsync(
+        int idPacient,
+        int idPrag,
+        CererePragAlertaDTO cerere,
+        CancellationToken cancellationToken = default)
+    {
+        await ObtinePacientCuAccesAsync(idPacient, cancellationToken);
+        var prag = await ObtinePragPentruPacientAsync(idPacient, idPrag, cancellationToken);
+
+        prag.TipParametru = cerere.TipParametru.Trim();
+        prag.ValoareMinima = cerere.ValoareMinima;
+        prag.ValoareMaxima = cerere.ValoareMaxima;
+        prag.DurataPersistentaSec = cerere.DurataPersistentaSec;
+        prag.Activ = cerere.Activ;
+
+        await _context.SaveChangesAsync(cancellationToken);
+        return MapLaRaspuns(prag);
+    }
+
+    public async Task StergeAsync(
+        int idPacient,
+        int idPrag,
+        CancellationToken cancellationToken = default)
+    {
+        await ObtinePacientCuAccesAsync(idPacient, cancellationToken);
+        var prag = await ObtinePragPentruPacientAsync(idPacient, idPrag, cancellationToken);
+
+        _context.PraguriAlerta.Remove(prag);
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
     private async Task<Pacient> ObtinePacientCuAccesAsync(
         int idPacient,
         CancellationToken cancellationToken)
@@ -103,6 +134,22 @@ public class PragAlertaService
             throw new AccesInterzisException("Profilul de medic nu a fost găsit.");
 
         return idMedic.Value;
+    }
+
+    private async Task<PragAlerta> ObtinePragPentruPacientAsync(
+        int idPacient,
+        int idPrag,
+        CancellationToken cancellationToken)
+    {
+        var prag = await _context.PraguriAlerta
+            .FirstOrDefaultAsync(
+                p => p.IdPrag == idPrag && p.IdPacient == idPacient,
+                cancellationToken);
+
+        if (prag == null)
+            throw new ResursaNegasitaException("Pragul de alertă nu a fost găsit.");
+
+        return prag;
     }
 
     private static RaspunsPragAlertaDTO MapLaRaspuns(PragAlerta p) => new()

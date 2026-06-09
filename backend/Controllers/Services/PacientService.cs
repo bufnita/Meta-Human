@@ -37,7 +37,8 @@ public class PacientService
         }
 
         return await query
-            .OrderBy(p => p.Nume)
+            .OrderByDescending(p => p.Activ)
+            .ThenBy(p => p.Nume)
             .Select(p => new RaspunsPacientDTO
             {
                 IdPacient = p.IdPacient,
@@ -58,6 +59,22 @@ public class PacientService
         CancellationToken cancellationToken = default)
     {
         var pacient = await ObtinePacientCuVerificareAccesAsync(idPacient, cancellationToken);
+        return MapLaDetaliu(pacient);
+    }
+
+    public async Task<RaspunsPacientDetaliuDTO> ObtineProfilCurentAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var idPacient = await _identitateClinicala.ObtineIdPacientCurentAsync(cancellationToken);
+        if (!idPacient.HasValue)
+            throw new AccesInterzisException("Profilul de pacient nu a fost gasit.");
+
+        var pacient = await _context.Pacienti
+            .FirstOrDefaultAsync(p => p.IdPacient == idPacient.Value, cancellationToken);
+
+        if (pacient == null)
+            throw new AccesInterzisException("Profilul de pacient nu a fost gasit.");
+
         return MapLaDetaliu(pacient);
     }
 
@@ -101,6 +118,9 @@ public class PacientService
             Email = email,
             Profesie = cerere.Profesie?.Trim(),
             LocMunca = cerere.LocMunca?.Trim(),
+            IstoricMedical = cerere.IstoricMedical?.Trim(),
+            Alergii = cerere.Alergii?.Trim(),
+            ConsultatiiCardiologice = cerere.ConsultatiiCardiologice?.Trim(),
             Activ = true
         };
 
@@ -136,6 +156,9 @@ public class PacientService
         pacient.Email = cerere.Email.Trim();
         pacient.Profesie = cerere.Profesie?.Trim();
         pacient.LocMunca = cerere.LocMunca?.Trim();
+        pacient.IstoricMedical = cerere.IstoricMedical?.Trim();
+        pacient.Alergii = cerere.Alergii?.Trim();
+        pacient.ConsultatiiCardiologice = cerere.ConsultatiiCardiologice?.Trim();
 
         if (pacient.IdUtilizator.HasValue)
         {
@@ -176,12 +199,35 @@ public class PacientService
         await _context.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task ActiveazaAsync(
+        int idPacient,
+        CancellationToken cancellationToken = default)
+    {
+        var pacient = await ObtinePacientCuVerificareAccesAsync(idPacient, cancellationToken);
+
+        if (pacient.Activ)
+            throw new InvalidOperationException("Pacientul este deja activ.");
+
+        pacient.Activ = true;
+
+        if (pacient.IdUtilizator.HasValue)
+        {
+            var utilizator = await _context.Utilizatori
+                .FirstOrDefaultAsync(u => u.IdUtilizator == pacient.IdUtilizator.Value, cancellationToken);
+
+            if (utilizator != null)
+                utilizator.Activ = true;
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task StergeDefinitivAsync(
         int idPacient,
         CancellationToken cancellationToken = default)
     {
         if (!_utilizatorCurent.EsteAdmin)
-            throw new AccesInterzisException("Doar administratorul poate șterge definitiv pacienți.");
+            throw new AccesInterzisException("Doar administratorul poate șterge pacienți.");
 
         var pacient = await _context.Pacienti
             .FirstOrDefaultAsync(p => p.IdPacient == idPacient, cancellationToken);

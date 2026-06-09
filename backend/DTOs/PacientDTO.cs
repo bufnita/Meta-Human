@@ -40,6 +40,12 @@ public class CererePacientDTO
 
     [MaxLength(150)]
     public string? LocMunca { get; set; }
+
+    public string? IstoricMedical { get; set; }
+
+    public string? Alergii { get; set; }
+
+    public string? ConsultatiiCardiologice { get; set; }
 }
 
 public class RaspunsPacientDTO

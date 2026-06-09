@@ -1,6 +1,6 @@
 import api from './axios';
 
-export const trimiteMarsuratoare = async (
+export const trimiteMasuratoare = async (
   idPacient: number,
   tipParametru: string,
   valoare: number,
@@ -15,5 +15,32 @@ export const trimiteMarsuratoare = async (
     dataOra: new Date().toISOString(),
     sursa,
   });
+
+  return raspuns.data;
+};
+
+export const obtineIstoricMasuratori = async (ultimele = 20) => {
+  const raspuns = await api.get('/masuratori/istoric', {
+    params: {
+      ultimele,
+    },
+  });
+
+  return raspuns.data;
+};
+
+export const trimiteEcg = async (
+  idPacient: number,
+  secventaValori: string,
+  durataCapturiiSec: number,
+  frecventaEsantionare?: number,
+) => {
+  const raspuns = await api.post('/masuratori/ecg', {
+    idPacient,
+    secventaValori,
+    durataCapturiiSec,
+    frecventaEsantionare,
+  });
+
   return raspuns.data;
 };

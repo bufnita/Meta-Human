@@ -23,10 +23,14 @@ export const mediciApi = {
   },
 
   async dezactiveaza(id: number): Promise<void> {
-    await api.delete(`/medici/${id}`)
+    await api.patch(`/medici/${id}/dezactivare`)
   },
 
-  async stergeDefinitiv(id: number): Promise<void> {
-    await api.delete(`/medici/${id}/definitiv`)
+  async activeaza(id: number): Promise<void> {
+    await api.patch(`/medici/${id}/activare`)
+  },
+
+  async sterge(id: number): Promise<void> {
+    await api.delete(`/medici/${id}`)
   },
 }

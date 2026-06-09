@@ -64,6 +64,58 @@ public class RecomandareService
         return recomandari.Select(MapLaRaspuns).ToList();
     }
 
+    public async Task<IReadOnlyList<RaspunsRecomandareDTO>> ObtinePentruPacientCurentAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var idPacient = await _identitateClinicala.ObtineIdPacientCurentAsync(cancellationToken);
+        if (!idPacient.HasValue)
+            throw new AccesInterzisException("Profilul de pacient nu a fost gasit.");
+
+        var recomandari = await _context.Recomandari
+            .Where(r => r.IdPacient == idPacient.Value)
+            .OrderByDescending(r => r.DataInceput)
+            .ToListAsync(cancellationToken);
+
+        return recomandari.Select(MapLaRaspuns).ToList();
+    }
+
+    public async Task<RaspunsRecomandareDTO> ActualizeazaAsync(
+        int idPacient,
+        int idRecomandare,
+        CerereRecomandareDTO cerere,
+        CancellationToken cancellationToken = default)
+    {
+        await ObtinePacientCuAccesAsync(idPacient, cancellationToken);
+        var recomandare = await ObtineRecomandarePentruPacientAsync(
+            idPacient,
+            idRecomandare,
+            cancellationToken);
+
+        recomandare.TipActivitate = cerere.TipActivitate.Trim();
+        recomandare.DurataZilnica = cerere.DurataZilnica?.Trim();
+        recomandare.AlteIndicatii = cerere.AlteIndicatii?.Trim();
+        recomandare.DataInceput = cerere.DataInceput;
+        recomandare.DataSfarsit = cerere.DataSfarsit;
+
+        await _context.SaveChangesAsync(cancellationToken);
+        return MapLaRaspuns(recomandare);
+    }
+
+    public async Task StergeAsync(
+        int idPacient,
+        int idRecomandare,
+        CancellationToken cancellationToken = default)
+    {
+        await ObtinePacientCuAccesAsync(idPacient, cancellationToken);
+        var recomandare = await ObtineRecomandarePentruPacientAsync(
+            idPacient,
+            idRecomandare,
+            cancellationToken);
+
+        _context.Recomandari.Remove(recomandare);
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
     private async Task<Pacient> ObtinePacientCuAccesAsync(
         int idPacient,
         CancellationToken cancellationToken)
@@ -92,6 +144,22 @@ public class RecomandareService
             throw new AccesInterzisException("Profilul de medic nu a fost găsit.");
 
         return idMedic.Value;
+    }
+
+    private async Task<Recomandare> ObtineRecomandarePentruPacientAsync(
+        int idPacient,
+        int idRecomandare,
+        CancellationToken cancellationToken)
+    {
+        var recomandare = await _context.Recomandari
+            .FirstOrDefaultAsync(
+                r => r.IdRecomandare == idRecomandare && r.IdPacient == idPacient,
+                cancellationToken);
+
+        if (recomandare == null)
+            throw new ResursaNegasitaException("Recomandarea nu a fost găsită.");
+
+        return recomandare;
     }
 
     private static RaspunsRecomandareDTO MapLaRaspuns(Recomandare r) => new()

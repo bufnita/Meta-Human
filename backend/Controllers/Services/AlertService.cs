@@ -127,6 +127,16 @@ public class AlertService
         return alerte.Select(MapLaRaspuns).ToList();
     }
 
+    public async Task<IReadOnlyList<RaspunsAlertaDTO>> ObtinePentruPacientCurentAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var idPacient = await _identitateClinicala.ObtineIdPacientCurentAsync(cancellationToken);
+        if (!idPacient.HasValue)
+            throw new AccesInterzisException("Profilul de pacient nu a fost gasit.");
+
+        return await ObtinePentruPacientAsync(idPacient.Value, cancellationToken);
+    }
+
     public async Task<RaspunsAlertaDTO> RezolvaAsync(
         int idAlerta,
         CancellationToken cancellationToken = default)

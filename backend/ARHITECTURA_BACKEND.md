@@ -51,7 +51,7 @@ Nu există endpoint de înregistrare. Conturile se creează ierarhic:
 | **Medic** | Pacient (+ login) | `POST /api/pacienti` — `Utilizator` + `Pacient`; `IdMedic` din JWT |
 | **Admin** | Pacient (+ login) | `POST /api/pacienti` — trebuie `idMedic` în body |
 
-La creare pacient, `CererePacientDTO` cere `email` și `parola` (cont login). Dezactivarea (`DELETE` fără `/definitiv`) păstrează legătura `IdMedic`; nu dezalocă pacientul. Pentru ca un medic să nu mai aibă pacienți legați: Admin **reatribuie** (`PUT` cu alt `IdMedic`) sau **șterge definitiv** pacienții. Ștergerea definitivă a unui medic e permisă doar dacă nu există niciun rând în `Pacient` cu acel `IdMedic` (inclusiv pacienți dezactivați).
+La creare pacient, `CererePacientDTO` cere `email` și `parola` (cont login). Dezactivarea (`PATCH .../dezactivare`) păstrează legătura `IdMedic`; nu dezalocă pacientul. Reactivarea: `PATCH .../activare`. Ștergerea definitivă: `DELETE /api/pacienti/{id}` (Admin). Pentru ca un medic să nu mai aibă pacienți legați: Admin **reatribuie** (`PUT` cu alt `IdMedic`) sau **șterge** pacienții. Ștergerea unui medic e permisă doar dacă nu există niciun rând în `Pacient` cu acel `IdMedic` (inclusiv pacienți dezactivați). Lista pacienților: activi întâi, apoi inactivi (alfabetic în fiecare grup).
 
 ## 3. Autentificare și Autorizare JWT
 
@@ -107,8 +107,9 @@ HTTPS este terminat la **Nginx**; backend-ul ascultă intern pe HTTP (vezi secț
 | GET | `/api/medici/{id}` | Detaliu medic |
 | POST | `/api/medici` | Creare medic (+ cont Utilizator) |
 | PUT | `/api/medici/{id}` | Actualizare medic |
-| DELETE | `/api/medici/{id}` | Dezactivare cont medic |
-| DELETE | `/api/medici/{id}/definitiv` | Ștergere definitivă medic (Admin; fără pacienți legați) |
+| PATCH | `/api/medici/{id}/dezactivare` | Dezactivare cont medic |
+| PATCH | `/api/medici/{id}/activare` | Reactivare cont medic |
+| DELETE | `/api/medici/{id}` | Ștergere definitivă medic (fără pacienți legați) |
 
 ### Pacienți (Medic sau Admin)
 | Metodă | Rută | Descriere |
@@ -117,14 +118,19 @@ HTTPS este terminat la **Nginx**; backend-ul ascultă intern pe HTTP (vezi secț
 | GET | `/api/pacienti/{id}` | Detaliu pacient (DTO) |
 | POST | `/api/pacienti` | Creare pacient + cont Utilizator (email, parolă) |
 | PUT | `/api/pacienti/{id}` | Actualizare pacient (Admin poate reatribui `IdMedic`) |
-| DELETE | `/api/pacienti/{id}` | Dezactivare pacient + cont (Medic: proprii; Admin: orice) |
-| DELETE | `/api/pacienti/{id}/definitiv` | Ștergere definitivă din DB (doar Admin) |
+| PATCH | `/api/pacienti/{id}/dezactivare` | Dezactivare pacient + cont (Medic: proprii; Admin: orice) |
+| PATCH | `/api/pacienti/{id}/activare` | Reactivare pacient + cont |
+| DELETE | `/api/pacienti/{id}` | Ștergere definitivă din DB (doar Admin) |
 | GET | `/api/pacienti/{id}/istoric` | Istoric măsurători |
 | GET | `/api/pacienti/{id}/alarme` | Alerte pentru pacient |
 | GET | `/api/pacienti/{id}/praguri` | Praguri alertă configurate |
 | POST | `/api/pacienti/{id}/praguri` | Configurare prag alertă |
+| PUT | `/api/pacienti/{id}/praguri/{idPrag}` | Actualizare prag alertă |
+| DELETE | `/api/pacienti/{id}/praguri/{idPrag}` | Ștergere prag alertă |
 | GET | `/api/pacienti/{id}/recomandari` | Recomandări active/istorice |
 | POST | `/api/pacienti/{id}/recomandari` | Creare recomandare |
+| PUT | `/api/pacienti/{id}/recomandari/{idRecomandare}` | Actualizare recomandare |
+| DELETE | `/api/pacienti/{id}/recomandari/{idRecomandare}` | Ștergere recomandare |
 
 ### Alerte globale (Medic)
 | Metodă | Rută | Descriere |
