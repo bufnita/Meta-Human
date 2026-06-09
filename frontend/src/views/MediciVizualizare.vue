@@ -370,8 +370,8 @@ h2 {
 .btn-contur-verde {
   padding: 0.4rem 0.9rem;
   background-color: white;
-  color: #276749;
-  border: 2px solid #276749;
+  color: #0047ab;
+  border: 2px solid #0047ab;
   border-radius: 8px;
   font-size: 0.85rem;
   font-weight: 600;
@@ -382,7 +382,7 @@ h2 {
     color 0.2s;
 }
 .btn-contur-verde:hover {
-  background-color: #276749;
+  background-color: #0047ab;
   color: white;
 }
 
@@ -401,7 +401,7 @@ h2 {
   border-radius: 12px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   margin-top: 1.5rem;
-  border-top: 4px solid #276749;
+  border-top: 4px solid #0047ab;
 }
 
 .panel-antet {
