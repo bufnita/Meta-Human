@@ -27,6 +27,8 @@ public class RecomandareService
         CerereRecomandareDTO cerere,
         CancellationToken cancellationToken = default)
     {
+        ValideazaPerioada(cerere);
+
         var pacient = await ObtinePacientCuAccesAsync(idPacient, cancellationToken);
         var idMedic = _utilizatorCurent.EsteAdmin
             ? pacient.IdMedic
@@ -85,6 +87,8 @@ public class RecomandareService
         CerereRecomandareDTO cerere,
         CancellationToken cancellationToken = default)
     {
+        ValideazaPerioada(cerere);
+
         await ObtinePacientCuAccesAsync(idPacient, cancellationToken);
         var recomandare = await ObtineRecomandarePentruPacientAsync(
             idPacient,
@@ -160,6 +164,13 @@ public class RecomandareService
             throw new ResursaNegasitaException("Recomandarea nu a fost găsită.");
 
         return recomandare;
+    }
+
+    private static void ValideazaPerioada(CerereRecomandareDTO cerere)
+    {
+        if (cerere.DataSfarsit.HasValue && cerere.DataInceput > cerere.DataSfarsit.Value)
+            throw new InvalidOperationException(
+                "Data de început trebuie să fie înainte sau egală cu data de sfârșit.");
     }
 
     private static RaspunsRecomandareDTO MapLaRaspuns(Recomandare r) => new()

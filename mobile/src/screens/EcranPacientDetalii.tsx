@@ -49,6 +49,7 @@ export default function EcranPacientDetalii({ navigation, route }: any) {
     dataInceput: new Date().toISOString().slice(0, 10),
     dataSfarsit: '',
   });
+  const eroareValidareRecomandare = obtineEroareValidareRecomandare(formularRecomandare);
 
   useEffect(() => {
     incarcaDate();
@@ -126,6 +127,10 @@ export default function EcranPacientDetalii({ navigation, route }: any) {
   };
 
   const salveazaRecomandare = async () => {
+    if (eroareValidareRecomandare) {
+      return;
+    }
+
     try {
       await adaugaRecomandarePacient(idPacient, {
         tipActivitate: formularRecomandare.tipActivitate,
@@ -275,7 +280,10 @@ export default function EcranPacientDetalii({ navigation, route }: any) {
           <CampText label="Data început" value={formularRecomandare.dataInceput} onChangeText={v => setFormularRecomandare({ ...formularRecomandare, dataInceput: v })} />
           <CampText label="Data sfârșit" value={formularRecomandare.dataSfarsit} onChangeText={v => setFormularRecomandare({ ...formularRecomandare, dataSfarsit: v })} />
           <CampText label="Alte indicații" value={formularRecomandare.alteIndicatii} onChangeText={v => setFormularRecomandare({ ...formularRecomandare, alteIndicatii: v })} multiline />
-          <ButonPrimar text="Salvează" onPress={salveazaRecomandare} />
+          {eroareValidareRecomandare ? (
+            <Text style={stiluri.eroareFormular}>{eroareValidareRecomandare}</Text>
+          ) : null}
+          <ButonPrimar text="Salvează" onPress={salveazaRecomandare} disabled={!!eroareValidareRecomandare} />
           <ButonContur text="Anulează" onPress={() => setFormularRecomandareDeschis(false)} />
         </ScrollView>
       </Modal>
@@ -353,6 +361,17 @@ function obtineEroareValidarePrag(formular: {
     valoareMinima >= valoareMaxima
   ) {
     return 'Valoarea minimă trebuie să fie mai mică decât valoarea maximă.';
+  }
+
+  return null;
+}
+
+function obtineEroareValidareRecomandare(formular: {
+  dataInceput: string;
+  dataSfarsit: string;
+}) {
+  if (formular.dataInceput && formular.dataSfarsit && formular.dataInceput > formular.dataSfarsit) {
+    return 'Data de început trebuie să fie înainte sau egală cu data de sfârșit.';
   }
 
   return null;

@@ -301,7 +301,7 @@
 
         <div v-if="arataFormularRecomandare" class="sub-formular">
           <h3>{{ recomandareEditataId === null ? 'Recomandare nouă' : 'Modifică recomandarea' }}</h3>
-          <form @submit.prevent="salveazaRecomandare">
+          <form novalidate @submit.prevent="salveazaRecomandare">
             <div class="rand-campuri">
               <div class="camp">
                 <label>Tip activitate *</label>
@@ -326,7 +326,15 @@
               <label>Alte indicații</label>
               <input v-model="formularRec.alteIndicatii" />
             </div>
-            <button type="submit" class="btn-primar" style="margin-top: 0.5rem">
+            <div v-if="eroareValidareRecomandare" class="eroare-formular">
+              {{ eroareValidareRecomandare }}
+            </div>
+            <button
+              type="submit"
+              class="btn-primar"
+              style="margin-top: 0.5rem"
+              :disabled="!!eroareValidareRecomandare"
+            >
               {{ recomandareEditataId === null ? 'Salvează Recomandare' : 'Salvează Modificările' }}
             </button>
           </form>
@@ -467,6 +475,16 @@ const formularRecGol = () => ({
   dataSfarsit: '',
 })
 const formularRec = ref(formularRecGol())
+const eroareValidareRecomandare = computed(() => {
+  const dataInceput = formularRec.value.dataInceput
+  const dataSfarsit = formularRec.value.dataSfarsit
+
+  if (dataInceput && dataSfarsit && dataInceput > dataSfarsit) {
+    return 'Data de început trebuie să fie înainte sau egală cu data de sfârșit.'
+  }
+
+  return null
+})
 
 onMounted(async () => {
   await pacientiStore.incarcaDetaliu(pacientId)
@@ -628,6 +646,8 @@ function incepeEditareRecomandare(recomandare: Recomandare) {
 }
 
 async function salveazaRecomandare() {
+  if (eroareValidareRecomandare.value) return
+
   const cerere = {
     tipActivitate: formularRec.value.tipActivitate,
     durataZilnica: formularRec.value.durataZilnica || undefined,
