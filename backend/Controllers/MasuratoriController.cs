@@ -36,6 +36,10 @@ public class MasuratoriController : ControllerBase
         {
             return StatusCode(403, new { mesaj = ex.Message });
         }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { mesaj = ex.Message });
+        }
     }
 
     [HttpPost("ecg")]

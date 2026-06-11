@@ -30,6 +30,7 @@ public class MasuratoareService
         CancellationToken cancellationToken = default)
     {
         await VerificaPacientAutentificatAsync(cerere.IdPacient, cancellationToken);
+        ValideazaValoareFiziologica(cerere.TipParametru, cerere.Valoare);
 
         var masuratoare = new Masuratoare
         {
@@ -93,6 +94,25 @@ public class MasuratoareService
         var idPacient = await _identitateClinicala.ObtineIdPacientCurentAsync(cancellationToken);
         if (!idPacient.HasValue || idPacient.Value != idPacientDinCerere)
             throw new AccesInterzisException("Nu puteți trimite măsurători pentru alt pacient.");
+    }
+
+    private static void ValideazaValoareFiziologica(string tipParametru, decimal valoare)
+    {
+        var interval = tipParametru.Trim().ToLowerInvariant() switch
+        {
+            "puls" => (Minim: 1m, Maxim: 300m),
+            "temperatura" => (Minim: 20m, Maxim: 45m),
+            "ecg" => (Minim: 0m, Maxim: 1023m),
+            _ => ((decimal Minim, decimal Maxim)?)null
+        };
+
+        if (interval.HasValue
+            && (valoare < interval.Value.Minim || valoare > interval.Value.Maxim))
+        {
+            throw new InvalidOperationException(
+                $"Valoarea pentru {tipParametru.Trim()} trebuie să fie între "
+                + $"{interval.Value.Minim} și {interval.Value.Maxim}.");
+        }
     }
 
     private static RaspunsMasuratoareDTO MapLaRaspuns(Masuratoare m) => new()
