@@ -39,6 +39,7 @@ export default function EcranPacientDetalii({ navigation, route }: any) {
     valoareMaxima: '',
     durataPersistentaSec: '1',
   });
+  const eroareValidarePrag = obtineEroareValidarePrag(formularPrag);
 
   const [formularRecomandareDeschis, setFormularRecomandareDeschis] = useState(false);
   const [formularRecomandare, setFormularRecomandare] = useState({
@@ -105,6 +106,10 @@ export default function EcranPacientDetalii({ navigation, route }: any) {
   };
 
   const salveazaPrag = async () => {
+    if (eroareValidarePrag) {
+      return;
+    }
+
     try {
       await adaugaPragPacient(idPacient, {
         tipParametru: formularPrag.tipParametru,
@@ -254,7 +259,10 @@ export default function EcranPacientDetalii({ navigation, route }: any) {
           <CampText label="Valoare minimă" value={formularPrag.valoareMinima} onChangeText={v => setFormularPrag({ ...formularPrag, valoareMinima: v })} keyboardType="numeric" />
           <CampText label="Valoare maximă" value={formularPrag.valoareMaxima} onChangeText={v => setFormularPrag({ ...formularPrag, valoareMaxima: v })} keyboardType="numeric" />
           <CampText label="Durată persistență secunde" value={formularPrag.durataPersistentaSec} onChangeText={v => setFormularPrag({ ...formularPrag, durataPersistentaSec: v })} keyboardType="numeric" />
-          <ButonPrimar text="Salvează" onPress={salveazaPrag} />
+          {eroareValidarePrag ? (
+            <Text style={stiluri.eroareFormular}>{eroareValidarePrag}</Text>
+          ) : null}
+          <ButonPrimar text="Salvează" onPress={salveazaPrag} disabled={!!eroareValidarePrag} />
           <ButonContur text="Anulează" onPress={() => setFormularPragDeschis(false)} />
         </ScrollView>
       </Modal>
@@ -291,6 +299,65 @@ function SectiuneLista({ titlu, lista, campPrincipal, campSecundar }: any) {
   );
 }
 
+function obtineEroareValidarePrag(formular: {
+  tipParametru: string;
+  valoareMinima: string;
+  valoareMaxima: string;
+  durataPersistentaSec: string;
+}) {
+  const tipParametru = formular.tipParametru.trim().toLowerCase();
+  const valoareMinima = formular.valoareMinima === '' ? null : Number(formular.valoareMinima);
+  const valoareMaxima = formular.valoareMaxima === '' ? null : Number(formular.valoareMaxima);
+  const durataPersistentaSec = Number(formular.durataPersistentaSec);
+
+  if (!tipParametru) {
+    return 'Tipul parametrului este obligatoriu.';
+  }
+
+  if (!formular.durataPersistentaSec || !Number.isFinite(durataPersistentaSec) || durataPersistentaSec < 1) {
+    return 'Durata de persistență trebuie să fie mai mare sau egală cu 1 secundă.';
+  }
+
+  if (
+    (tipParametru === 'puls' || tipParametru === 'temperatura') &&
+    ((valoareMinima !== null && valoareMinima < 0) ||
+      (valoareMaxima !== null && valoareMaxima < 0))
+  ) {
+    return `Valorile negative nu sunt permise pentru ${tipParametru}.`;
+  }
+
+  const intervale: Record<string, { minim: number; maxim: number }> = {
+    puls: { minim: 1, maxim: 300 },
+    temperatura: { minim: 20, maxim: 45 },
+    ecg: { minim: 0, maxim: 1023 },
+  };
+  const interval = intervale[tipParametru];
+
+  if (
+    interval &&
+    ((valoareMinima !== null &&
+      (!Number.isFinite(valoareMinima) ||
+        valoareMinima < interval.minim ||
+        valoareMinima > interval.maxim)) ||
+      (valoareMaxima !== null &&
+        (!Number.isFinite(valoareMaxima) ||
+          valoareMaxima < interval.minim ||
+          valoareMaxima > interval.maxim)))
+  ) {
+    return `Valorile pentru ${tipParametru} trebuie să fie între ${interval.minim} și ${interval.maxim}.`;
+  }
+
+  if (
+    valoareMinima !== null &&
+    valoareMaxima !== null &&
+    valoareMinima >= valoareMaxima
+  ) {
+    return 'Valoarea minimă trebuie să fie mai mică decât valoarea maximă.';
+  }
+
+  return null;
+}
+
 const stiluri = StyleSheet.create({
   container: { flex: 1, backgroundColor: culori.fundal },
   centrat: { flex: 1, alignItems: 'center', justifyContent: 'center' },
@@ -306,4 +373,13 @@ const stiluri = StyleSheet.create({
   randTitlu: { color: culori.text, fontWeight: 'bold', fontSize: 15, marginBottom: 4 },
   randSubtitlu: { color: culori.textSecundar, fontSize: 13 },
   textGol: { color: culori.textSecundar },
+  eroareFormular: {
+    backgroundColor: culori.eroareFundal,
+    color: culori.eroare,
+    borderColor: culori.eroare,
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: 12,
+    marginBottom: 8,
+  },
 });
