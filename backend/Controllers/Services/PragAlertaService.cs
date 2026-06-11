@@ -29,6 +29,7 @@ public class PragAlertaService
     {
         var pacient = await ObtinePacientCuAccesAsync(idPacient, cancellationToken);
         var idMedic = await RezolvaIdMedicPentruPacientAsync(pacient, cancellationToken);
+        ValideazaValoriPrag(cerere);
 
         var prag = new PragAlerta
         {
@@ -69,6 +70,7 @@ public class PragAlertaService
     {
         await ObtinePacientCuAccesAsync(idPacient, cancellationToken);
         var prag = await ObtinePragPentruPacientAsync(idPacient, idPrag, cancellationToken);
+        ValideazaValoriPrag(cerere);
 
         prag.TipParametru = cerere.TipParametru.Trim();
         prag.ValoareMinima = cerere.ValoareMinima;
@@ -150,6 +152,42 @@ public class PragAlertaService
             throw new ResursaNegasitaException("Pragul de alertă nu a fost găsit.");
 
         return prag;
+    }
+
+    private static void ValideazaValoriPrag(CererePragAlertaDTO cerere)
+    {
+        var interval = cerere.TipParametru.Trim().ToLowerInvariant() switch
+        {
+            "puls" => (Minim: 1m, Maxim: 300m),
+            "temperatura" => (Minim: 20m, Maxim: 45m),
+            "ecg" => (Minim: 0m, Maxim: 1023m),
+            _ => ((decimal Minim, decimal Maxim)?)null
+        };
+
+        if (interval.HasValue
+            && (EsteInAfaraIntervalului(cerere.ValoareMinima, interval.Value)
+                || EsteInAfaraIntervalului(cerere.ValoareMaxima, interval.Value)))
+        {
+            throw new InvalidOperationException(
+                $"Valorile pragului pentru {cerere.TipParametru.Trim()} trebuie să fie între "
+                + $"{interval.Value.Minim} și {interval.Value.Maxim}.");
+        }
+
+        if (cerere.ValoareMinima.HasValue
+            && cerere.ValoareMaxima.HasValue
+            && cerere.ValoareMinima.Value >= cerere.ValoareMaxima.Value)
+        {
+            throw new InvalidOperationException(
+                "Valoarea minimă trebuie să fie mai mică decât valoarea maximă.");
+        }
+    }
+
+    private static bool EsteInAfaraIntervalului(
+        decimal? valoare,
+        (decimal Minim, decimal Maxim) interval)
+    {
+        return valoare.HasValue
+            && (valoare.Value < interval.Minim || valoare.Value > interval.Maxim);
     }
 
     private static RaspunsPragAlertaDTO MapLaRaspuns(PragAlerta p) => new()

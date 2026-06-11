@@ -249,6 +249,10 @@ public class PacientiController : ControllerBase
         {
             return StatusCode(403, new { mesaj = ex.Message });
         }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { mesaj = ex.Message });
+        }
     }
 
     [HttpPut("{id:int}/praguri/{idPrag:int}")]
@@ -270,6 +274,10 @@ public class PacientiController : ControllerBase
         catch (AccesInterzisException ex)
         {
             return StatusCode(403, new { mesaj = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { mesaj = ex.Message });
         }
     }
 
