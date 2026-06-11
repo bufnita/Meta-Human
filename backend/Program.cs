@@ -142,11 +142,10 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
-}
+// Folosim Swagger si in Prod (blocam ruta din Nginx, primim doar requesturi pe subdomeniul swagger)
+app.UseSwagger();
+app.UseSwaggerUI();
+
 
 // 4. Pipeline-ul cererilor HTTP
 app.UseForwardedHeaders();
