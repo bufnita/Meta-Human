@@ -224,7 +224,7 @@
 
         <div v-if="arataFormularPrag" class="sub-formular">
           <h3>{{ pragEditatId === null ? 'Prag nou' : 'Modifică pragul' }}</h3>
-          <form @submit.prevent="salveazaPrag">
+          <form novalidate @submit.prevent="salveazaPrag">
             <div class="rand-campuri">
               <div class="camp">
                 <label>Tip parametru *</label>
@@ -245,11 +245,14 @@
                 <input v-model.number="formularPrag.valoareMaxima" type="number" step="0.01" />
               </div>
             </div>
+            <div v-if="eroareValidarePrag" class="eroare-formular">
+              {{ eroareValidarePrag }}
+            </div>
             <div class="camp-checkbox">
               <input v-model="formularPrag.activ" type="checkbox" id="pragActiv" />
               <label for="pragActiv">Activ</label>
             </div>
-            <button type="submit" class="btn-primar">
+            <button type="submit" class="btn-primar" :disabled="!!eroareValidarePrag">
               {{ pragEditatId === null ? 'Salvează Prag' : 'Salvează Modificările' }}
             </button>
           </form>
@@ -365,7 +368,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePacientiStore } from '../stores/pacienti'
 import type { PragAlerta, Recomandare } from '../types'
@@ -407,6 +410,54 @@ const formularPragGol = () => ({
   activ: true,
 })
 const formularPrag = ref(formularPragGol())
+const eroareValidarePrag = computed(() => {
+  const tipParametru = formularPrag.value.tipParametru.trim().toLowerCase()
+  const valoareMinima = formularPrag.value.valoareMinima
+  const valoareMaxima = formularPrag.value.valoareMaxima
+
+  if (!tipParametru) {
+    return 'Tipul parametrului este obligatoriu.'
+  }
+
+  if (formularPrag.value.durataPersistentaSec < 1) {
+    return 'Durata de persistență trebuie să fie mai mare sau egală cu 1 secundă.'
+  }
+
+  if (
+    (tipParametru === 'puls' || tipParametru === 'temperatura') &&
+    ((valoareMinima !== undefined && valoareMinima < 0) ||
+      (valoareMaxima !== undefined && valoareMaxima < 0))
+  ) {
+    return `Valorile negative nu sunt permise pentru ${tipParametru}.`
+  }
+
+  const intervale: Record<string, { minim: number; maxim: number }> = {
+    puls: { minim: 1, maxim: 300 },
+    temperatura: { minim: 20, maxim: 45 },
+    ecg: { minim: 0, maxim: 1023 },
+  }
+  const interval = intervale[tipParametru]
+
+  if (
+    interval &&
+    ((valoareMinima !== undefined &&
+      (valoareMinima < interval.minim || valoareMinima > interval.maxim)) ||
+      (valoareMaxima !== undefined &&
+        (valoareMaxima < interval.minim || valoareMaxima > interval.maxim)))
+  ) {
+    return `Valorile pentru ${tipParametru} trebuie să fie între ${interval.minim} și ${interval.maxim}.`
+  }
+
+  if (
+    valoareMinima !== undefined &&
+    valoareMaxima !== undefined &&
+    valoareMinima >= valoareMaxima
+  ) {
+    return 'Valoarea minimă trebuie să fie mai mică decât valoarea maximă.'
+  }
+
+  return null
+})
 
 const formularRecGol = () => ({
   tipActivitate: '',
@@ -522,6 +573,8 @@ function incepeEditarePrag(prag: PragAlerta) {
 }
 
 async function salveazaPrag() {
+  if (eroareValidarePrag.value) return
+
   const cerere = {
     ...formularPrag.value,
     durataPersistentaSec: formularPrag.value.durataPersistentaSec,
@@ -804,6 +857,16 @@ h2 {
 }
 .camp input:focus,
 .camp textarea:focus { border-color: #0047AB; }
+
+.eroare-formular {
+  background-color: #fff5f5;
+  color: #c53030;
+  border: 1px solid #feb2b2;
+  padding: 0.65rem 0.8rem;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+}
 
 .butoane-formular {
   display: flex;
