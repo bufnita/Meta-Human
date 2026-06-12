@@ -19,8 +19,10 @@
       <div v-for="card in carduriMasuratori" :key="card.cheie" class="card-masurare">
         <h2>{{ card.titlu }}</h2>
         <div class="valoare">
-          {{ card.masuratoare?.valoare ?? '-' }}
-          <span>{{ card.masuratoare?.unitateMasura ?? card.unitateFallback }}</span>
+          {{ card.masuratoare?.valoare ?? '--' }}
+          <span v-if="card.masuratoare">
+            {{ card.masuratoare.unitateMasura ?? card.unitateFallback }}
+          </span>
         </div>
         <p v-if="card.masuratoare">
           {{ formateazaDataOraRomania(card.masuratoare.dataOra) }}
@@ -65,11 +67,20 @@ import { pacientApi } from '../api/pacient'
 import type { Masuratoare } from '../types'
 import { formateazaDataOraRomania } from '../utils/dataOra'
 
+type TipMetrica = 'temperatura' | 'ecg' | 'puls'
+
 const istoric = ref<Masuratoare[]>([])
 const incarcare = ref(false)
 const eroare = ref<string | null>(null)
 const ultimele = ref(50)
 const intervalPollingMs = 8000
+const DATA_ORA_FARA_TIMEZONE =
+  /^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}:\d{2}(?:\.\d+)?$/
+const FEREASTRA_MASURARE_LIVE_MS: Record<TipMetrica, number> = {
+  temperatura: 45000,
+  ecg: 32000,
+  puls: 24000,
+}
 
 let intervalIstoricId: ReturnType<typeof setInterval> | null = null
 
@@ -131,24 +142,44 @@ function ultimaPentru(tip: string) {
   return istoric.value.find((m) => normalizeazaTipParametru(m.tipParametru) === tip)
 }
 
+function ultimaMasuratoareLivePentru(tip: TipMetrica) {
+  const masuratoare = ultimaPentru(tip)
+
+  if (!masuratoare) {
+    return null
+  }
+
+  const timestamp = obtineTimestampMasuratoare(masuratoare.dataOra)
+
+  if (timestamp === null) {
+    return null
+  }
+
+  if (Date.now() - timestamp > FEREASTRA_MASURARE_LIVE_MS[tip]) {
+    return null
+  }
+
+  return masuratoare
+}
+
 const carduriMasuratori = computed(() => [
   {
     cheie: 'temperatura',
     titlu: 'Temperatură',
     unitateFallback: 'C',
-    masuratoare: ultimaPentru('temperatura'),
+    masuratoare: ultimaMasuratoareLivePentru('temperatura'),
   },
   {
     cheie: 'ecg',
     titlu: 'ECG',
     unitateFallback: 'raw',
-    masuratoare: ultimaPentru('ecg'),
+    masuratoare: ultimaMasuratoareLivePentru('ecg'),
   },
   {
     cheie: 'puls',
     titlu: 'Puls',
     unitateFallback: 'bpm',
-    masuratoare: ultimaPentru('puls'),
+    masuratoare: ultimaMasuratoareLivePentru('puls'),
   },
 ])
 
@@ -162,6 +193,26 @@ function normalizeazaTipParametru(tipParametru?: string | null) {
   return String(tipParametru ?? '')
     .trim()
     .toLowerCase()
+}
+
+function obtineTimestampMasuratoare(dataOra?: string | null) {
+  const valoareCuratata = String(dataOra ?? '').trim()
+
+  if (!valoareCuratata) {
+    return null
+  }
+
+  const valoareStandardizata = DATA_ORA_FARA_TIMEZONE.test(valoareCuratata)
+    ? `${valoareCuratata.replace(' ', 'T')}Z`
+    : valoareCuratata
+
+  const dataMasuratoare = new Date(valoareStandardizata)
+
+  if (Number.isNaN(dataMasuratoare.getTime())) {
+    return null
+  }
+
+  return dataMasuratoare.getTime()
 }
 
 function etichetaParametru(tipParametru?: string | null) {

@@ -16,7 +16,7 @@
 
           <router-link
             v-if="
-              utilizatorStore.estePacient || utilizatorStore.esteMedic || utilizatorStore.esteAdmin
+              utilizatorStore.estePacient || utilizatorStore.esteMedic
             "
             to="/alarme"
             @click="meniuDeschis = false"
@@ -25,7 +25,7 @@
           </router-link>
 
           <router-link
-            v-if="utilizatorStore.estePacient || utilizatorStore.esteAdmin"
+            v-if="utilizatorStore.estePacient"
             to="/recomandari"
             @click="meniuDeschis = false"
           >

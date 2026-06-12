@@ -64,7 +64,7 @@ export default function LayoutAplicatie({
     navigation.replace('Autentificare');
   };
 
-  const taburi = construiesteTaburi(rol);
+  const taburi = construiesteTaburiVizibile(rol);
 
   const continut = (
     <View style={[stiluri.continut, contentStyle]}>
@@ -150,6 +150,22 @@ function construiesteTaburi(rol: RolUtilizator) {
     { titlu: 'Recomandări', ecran: 'Recomandari' as TabAplicatie },
     { titlu: 'Pacienți', ecran: 'Pacienti' as TabAplicatie },
   ];
+}
+
+function construiesteTaburiVizibile(rol: RolUtilizator) {
+  return construiesteTaburi(rol).filter(tab => esteTabVizibilPentruRol(rol, tab.ecran));
+}
+
+function esteTabVizibilPentruRol(rol: RolUtilizator, tab: TabAplicatie) {
+  if (rol === 'Admin') {
+    return tab !== 'Alerte' && tab !== 'Recomandari';
+  }
+
+  if (rol === 'Medic') {
+    return tab !== 'Monitorizare' && tab !== 'Recomandari';
+  }
+
+  return true;
 }
 
 const stiluri = StyleSheet.create({

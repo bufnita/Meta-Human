@@ -184,7 +184,7 @@
       </div>
 
       <!-- Alerte pacient -->
-      <div class="card">
+      <div v-if="afiseazaAlerteSiRecomandari" class="card">
         <h2>Alerte</h2>
         <table v-if="pacientiStore.alerte.length">
           <thead>
@@ -291,7 +291,7 @@
       </div>
 
       <!-- Recomandări -->
-      <div class="card">
+      <div v-if="afiseazaAlerteSiRecomandari" class="card">
         <div class="antet-card">
           <h2>Recomandări</h2>
           <button class="btn-contur" @click="comutaFormularRecomandare">
@@ -379,12 +379,14 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePacientiStore } from '../stores/pacienti'
+import { useUtilizatorStore } from '../stores/utilizator'
 import type { IstoricMasuratori, Masuratoare, PragAlerta, Recomandare } from '../types'
 import { formateazaDataOraRomania } from '../utils/dataOra'
 
 const route = useRoute()
 const router = useRouter()
 const pacientiStore = usePacientiStore()
+const utilizatorStore = useUtilizatorStore()
 
 const pacientId = Number(route.params.id)
 const numarMasuratori = ref(50)
@@ -493,14 +495,17 @@ const eroareValidareRecomandare = computed(() => {
 const istoricMasuratori = computed(() =>
   extrageMasuratori(pacientiStore.istoricMasuratori),
 )
+const afiseazaAlerteSiRecomandari = computed(() => !utilizatorStore.esteAdmin)
 
 onMounted(async () => {
   await pacientiStore.incarcaDetaliu(pacientId)
   pregatesteFormularPacient()
   await pacientiStore.incarcaIstoric(pacientId, numarMasuratori.value)
-  await pacientiStore.incarcaAlertePatient(pacientId)
   await pacientiStore.incarcaPraguri(pacientId)
-  await pacientiStore.incarcaRecomandari(pacientId)
+  if (afiseazaAlerteSiRecomandari.value) {
+    await pacientiStore.incarcaAlertePatient(pacientId)
+    await pacientiStore.incarcaRecomandari(pacientId)
+  }
   pornestePollingIstoric()
 })
 

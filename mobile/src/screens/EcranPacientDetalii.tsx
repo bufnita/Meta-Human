@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, Modal } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import Card from '../components/Card';
 import Badge from '../components/Badge';
 import RandInfo from '../components/RandInfo';
@@ -20,9 +21,12 @@ import {
 import { culori } from '../styles/tema';
 import { formateazaDataOraRomania } from '../utils/dataOra';
 
+type RolUtilizator = 'Pacient' | 'Medic' | 'Admin';
+
 export default function EcranPacientDetalii({ navigation, route }: any) {
   const idPacient = route.params?.idPacient;
 
+  const [rol, setRol] = useState<RolUtilizator | null>(null);
   const [pacient, setPacient] = useState<any>(null);
   const [istoric, setIstoric] = useState<any[]>([]);
   const [alerte, setAlerte] = useState<any[]>([]);
@@ -51,18 +55,26 @@ export default function EcranPacientDetalii({ navigation, route }: any) {
     dataSfarsit: '',
   });
   const eroareValidareRecomandare = obtineEroareValidareRecomandare(formularRecomandare);
+  const afiseazaAlerteSiRecomandari = rol !== null && rol !== 'Admin';
 
   const incarcaDate = useCallback(async () => {
     setSeIncarca(true);
 
     try {
+      const utilizatorSalvat = await AsyncStorage.getItem('utilizator');
+      const utilizator = utilizatorSalvat ? JSON.parse(utilizatorSalvat) : null;
+      const rolCurent = (utilizator?.rol ?? utilizator?.Rol ?? 'Pacient') as RolUtilizator;
+      setRol(rolCurent);
+
       const [detaliu, raspunsIstoric, raspunsAlerte, raspunsPraguri, raspunsRecomandari] =
         await Promise.all([
           obtinePacient(idPacient),
           obtineIstoricPacient(idPacient, 20),
-          obtineAlertePacientDupaId(idPacient),
+          rolCurent === 'Admin' ? Promise.resolve([]) : obtineAlertePacientDupaId(idPacient),
           obtinePraguriPacient(idPacient),
-          obtineRecomandariPacientDupaId(idPacient),
+          rolCurent === 'Admin'
+            ? Promise.resolve([])
+            : obtineRecomandariPacientDupaId(idPacient),
         ]);
 
       setPacient(detaliu);
@@ -201,7 +213,14 @@ export default function EcranPacientDetalii({ navigation, route }: any) {
         </Card>
 
         <SectiuneIstoricMasuratori titlu="Istoric măsurători" lista={istoric} />
-        <SectiuneLista titlu="Alerte" lista={alerte} campPrincipal="tipAlerta" campSecundar="stare" />
+        {afiseazaAlerteSiRecomandari ? (
+          <SectiuneLista
+            titlu="Alerte"
+            lista={alerte}
+            campPrincipal="tipAlerta"
+            campSecundar="stare"
+          />
+        ) : null}
 
         <Card>
           <View style={stiluri.antetCard}>
@@ -231,7 +250,8 @@ export default function EcranPacientDetalii({ navigation, route }: any) {
           )) : <Text style={stiluri.textGol}>Nu există praguri configurate.</Text>}
         </Card>
 
-        <Card>
+        {afiseazaAlerteSiRecomandari ? (
+          <Card>
           <View style={stiluri.antetCard}>
             <Text style={stiluri.sectiuneTitlu}>Recomandări</Text>
             <ButonContur text="+ Adaugă recomandare" onPress={() => setFormularRecomandareDeschis(true)} />
@@ -257,7 +277,8 @@ export default function EcranPacientDetalii({ navigation, route }: any) {
               />
             </View>
           )) : <Text style={stiluri.textGol}>Nu există recomandări.</Text>}
-        </Card>
+          </Card>
+        ) : null}
       </ScrollView>
 
       <Modal visible={formularPragDeschis} animationType="slide">

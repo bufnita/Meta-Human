@@ -57,14 +57,14 @@ const carduri = [
     descriere: 'Consultare alerte active si istoric alerte.',
     ruta: '/alarme',
     initiala: 'A',
-    roluri: ['Pacient', 'Medic', 'Admin'],
+    roluri: ['Pacient', 'Medic'],
   },
   {
     titlu: 'Recomandări',
     descriere: 'Indicații medicale pentru pacient.',
     ruta: '/recomandari',
     initiala: 'R',
-    roluri: ['Pacient', 'Admin'],
+    roluri: ['Pacient'],
   },
   {
     titlu: 'Pacienți',
