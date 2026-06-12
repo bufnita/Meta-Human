@@ -18,6 +18,7 @@ import {
   stergeRecomandarePacient,
 } from '../api/pacienti';
 import { culori } from '../styles/tema';
+import { formateazaDataOraRomania } from '../utils/dataOra';
 
 export default function EcranPacientDetalii({ navigation, route }: any) {
   const idPacient = route.params?.idPacient;
@@ -383,17 +384,7 @@ function formateazaMasurare(item: any) {
 }
 
 function formateazaData(data?: string | null) {
-  if (!data) {
-    return '-';
-  }
-
-  const dataConvertita = new Date(data);
-
-  if (Number.isNaN(dataConvertita.getTime())) {
-    return '-';
-  }
-
-  return dataConvertita.toLocaleString('ro-RO');
+  return formateazaDataOraRomania(data);
 }
 
 function obtineEroareValidarePrag(formular: {

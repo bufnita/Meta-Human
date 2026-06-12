@@ -175,7 +175,7 @@
               <td>{{ etichetaParametru(m.tipParametru) }}</td>
               <td>{{ m.valoare }}</td>
               <td>{{ m.unitateMasura }}</td>
-              <td>{{ new Date(m.dataOra).toLocaleString('ro-RO') }}</td>
+              <td>{{ formateazaDataOraRomania(m.dataOra) }}</td>
               <td>{{ m.stare }}</td>
             </tr>
           </tbody>
@@ -206,7 +206,7 @@
               <td>{{ alerta.valoareConstatata }}</td>
               <td>{{ alerta.mesaj }}</td>
               <td>{{ alerta.stare }}</td>
-              <td>{{ new Date(alerta.dataOra).toLocaleString('ro-RO') }}</td>
+              <td>{{ formateazaDataOraRomania(alerta.dataOra) }}</td>
             </tr>
           </tbody>
         </table>
@@ -380,6 +380,7 @@ import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePacientiStore } from '../stores/pacienti'
 import type { IstoricMasuratori, Masuratoare, PragAlerta, Recomandare } from '../types'
+import { formateazaDataOraRomania } from '../utils/dataOra'
 
 const route = useRoute()
 const router = useRouter()
@@ -680,7 +681,19 @@ async function stergeRecomandare(idRecomandare: number) {
 }
 
 function extrageMasuratori(raspuns?: IstoricMasuratori | { Masuratori?: Masuratoare[] } | null) {
-  return (raspuns?.masuratori ?? raspuns?.Masuratori ?? []).filter(Boolean)
+  if (!raspuns) {
+    return []
+  }
+
+  if ('masuratori' in raspuns && Array.isArray(raspuns.masuratori)) {
+    return raspuns.masuratori.filter(Boolean)
+  }
+
+  if ('Masuratori' in raspuns && Array.isArray(raspuns.Masuratori)) {
+    return raspuns.Masuratori.filter(Boolean)
+  }
+
+  return []
 }
 
 function normalizeazaTipParametru(tipParametru?: string | null) {

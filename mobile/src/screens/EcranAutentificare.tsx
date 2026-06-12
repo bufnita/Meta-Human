@@ -161,11 +161,13 @@ export default function EcranAutentificare({ navigation }: any) {
         />
 
         <TextInput
-          style={stiluri.input}
+          style={[stiluri.input, stiluri.inputParola]}
           placeholder="Parolă"
           value={parola}
           onChangeText={setParola}
-          secureTextEntry
+          secureTextEntry={true}
+          autoCapitalize="none"
+          autoCorrect={false}
         />
 
         <TouchableOpacity
@@ -279,6 +281,9 @@ const stiluri = StyleSheet.create({
     fontSize: 16,
     borderWidth: 1,
     borderColor: '#ddd',
+  },
+  inputParola: {
+    color: '#000',
   },
   buton: {
     backgroundColor: culori.primar,

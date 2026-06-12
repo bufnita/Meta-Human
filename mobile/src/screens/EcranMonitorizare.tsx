@@ -16,6 +16,7 @@ import { obtineIstoricMasuratori, trimiteMasuratoare } from '../api/masuratori';
 import Card from '../components/Card';
 import { ButonPrimar } from '../components/Buton';
 import { culori } from '../styles/tema';
+import { formateazaDataOraRomania } from '../utils/dataOra';
 
 type Masuratoare = {
   idMasuratoare: number;
@@ -633,17 +634,7 @@ function CardMasurare({ titlu, valoare }: { titlu: string; valoare: string }) {
 }
 
 function formateazaData(data?: string | null) {
-  if (!data) {
-    return '-';
-  }
-
-  const dataConvertita = new Date(data);
-
-  if (Number.isNaN(dataConvertita.getTime())) {
-    return '-';
-  }
-
-  return dataConvertita.toLocaleString('ro-RO');
+  return formateazaDataOraRomania(data);
 }
 
 function formateazaValoareLive(tip: TipMetrica, valoare: number | null) {

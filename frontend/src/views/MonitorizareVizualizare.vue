@@ -23,7 +23,7 @@
           <span>{{ card.masuratoare?.unitateMasura ?? card.unitateFallback }}</span>
         </div>
         <p v-if="card.masuratoare">
-          {{ new Date(card.masuratoare.dataOra).toLocaleString('ro-RO') }}
+          {{ formateazaDataOraRomania(card.masuratoare.dataOra) }}
         </p>
         <p v-else>Nu există măsurători recente.</p>
       </div>
@@ -49,7 +49,7 @@
             <td data-label="Parametru">{{ etichetaParametru(masuratoare.tipParametru) }}</td>
             <td data-label="Valoare">{{ masuratoare.valoare }}</td>
             <td data-label="Unitate">{{ masuratoare.unitateMasura }}</td>
-            <td data-label="Data">{{ new Date(masuratoare.dataOra).toLocaleString('ro-RO') }}</td>
+            <td data-label="Data">{{ formateazaDataOraRomania(masuratoare.dataOra) }}</td>
             <td data-label="Stare">{{ masuratoare.stare }}</td>
           </tr>
         </tbody>
@@ -63,6 +63,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { pacientApi } from '../api/pacient'
 import type { Masuratoare } from '../types'
+import { formateazaDataOraRomania } from '../utils/dataOra'
 
 const istoric = ref<Masuratoare[]>([])
 const incarcare = ref(false)
