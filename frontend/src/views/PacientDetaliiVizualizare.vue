@@ -157,7 +157,7 @@
           </select>
         </div>
 
-        <table v-if="pacientiStore.istoricMasuratori?.masuratori.length">
+        <table v-if="istoricMasuratori.length">
           <thead>
             <tr>
               <th>Parametru</th>
@@ -169,10 +169,10 @@
           </thead>
           <tbody>
             <tr
-              v-for="m in pacientiStore.istoricMasuratori.masuratori"
+              v-for="m in istoricMasuratori"
               :key="m.idMasuratoare"
             >
-              <td>{{ m.tipParametru }}</td>
+              <td>{{ etichetaParametru(m.tipParametru) }}</td>
               <td>{{ m.valoare }}</td>
               <td>{{ m.unitateMasura }}</td>
               <td>{{ new Date(m.dataOra).toLocaleString('ro-RO') }}</td>
@@ -379,14 +379,14 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePacientiStore } from '../stores/pacienti'
-import type { PragAlerta, Recomandare } from '../types'
+import type { IstoricMasuratori, Masuratoare, PragAlerta, Recomandare } from '../types'
 
 const route = useRoute()
 const router = useRouter()
 const pacientiStore = usePacientiStore()
 
 const pacientId = Number(route.params.id)
-const numarMasuratori = ref(10)
+const numarMasuratori = ref(50)
 const arataFormularPrag = ref(false)
 const pragEditatId = ref<number | null>(null)
 const arataFormularRecomandare = ref(false)
@@ -485,6 +485,10 @@ const eroareValidareRecomandare = computed(() => {
 
   return null
 })
+
+const istoricMasuratori = computed(() =>
+  extrageMasuratori(pacientiStore.istoricMasuratori),
+)
 
 onMounted(async () => {
   await pacientiStore.incarcaDetaliu(pacientId)
@@ -673,6 +677,34 @@ async function stergeRecomandare(idRecomandare: number) {
       inchideFormularRecomandare()
     }
   }
+}
+
+function extrageMasuratori(raspuns?: IstoricMasuratori | { Masuratori?: Masuratoare[] } | null) {
+  return (raspuns?.masuratori ?? raspuns?.Masuratori ?? []).filter(Boolean)
+}
+
+function normalizeazaTipParametru(tipParametru?: string | null) {
+  return String(tipParametru ?? '')
+    .trim()
+    .toLowerCase()
+}
+
+function etichetaParametru(tipParametru?: string | null) {
+  const cheie = normalizeazaTipParametru(tipParametru)
+
+  if (cheie === 'temperatura') {
+    return 'Temperatură'
+  }
+
+  if (cheie === 'ecg') {
+    return 'ECG'
+  }
+
+  if (cheie === 'puls') {
+    return 'Puls'
+  }
+
+  return tipParametru || '-'
 }
 </script>
 

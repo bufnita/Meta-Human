@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, Modal } from 'react-native';
 import Card from '../components/Card';
 import Badge from '../components/Badge';
@@ -51,11 +51,7 @@ export default function EcranPacientDetalii({ navigation, route }: any) {
   });
   const eroareValidareRecomandare = obtineEroareValidareRecomandare(formularRecomandare);
 
-  useEffect(() => {
-    incarcaDate();
-  }, []);
-
-  const incarcaDate = async () => {
+  const incarcaDate = useCallback(async () => {
     setSeIncarca(true);
 
     try {
@@ -81,7 +77,7 @@ export default function EcranPacientDetalii({ navigation, route }: any) {
         locMunca: detaliu.locMunca ?? '',
         parola: '',
       });
-      setIstoric(raspunsIstoric.masuratori ?? raspunsIstoric.Masuratori ?? []);
+      setIstoric(extrageMasuratoriDinRaspuns(raspunsIstoric));
       setAlerte(raspunsAlerte ?? []);
       setPraguri(raspunsPraguri ?? []);
       setRecomandari(raspunsRecomandari ?? []);
@@ -90,7 +86,13 @@ export default function EcranPacientDetalii({ navigation, route }: any) {
     } finally {
       setSeIncarca(false);
     }
-  };
+  }, [idPacient]);
+
+  useEffect(() => {
+    incarcaDate().catch(() => {
+      // Eroarea este tratată în funcția de încărcare.
+    });
+  }, [incarcaDate]);
 
   const salveazaPacient = async () => {
     try {
@@ -197,7 +199,7 @@ export default function EcranPacientDetalii({ navigation, route }: any) {
           )}
         </Card>
 
-        <SectiuneLista titlu="Istoric măsurători" lista={istoric} campPrincipal="tipParametru" campSecundar="valoare" />
+        <SectiuneIstoricMasuratori titlu="Istoric măsurători" lista={istoric} />
         <SectiuneLista titlu="Alerte" lista={alerte} campPrincipal="tipAlerta" campSecundar="stare" />
 
         <Card>
@@ -307,6 +309,93 @@ function SectiuneLista({ titlu, lista, campPrincipal, campSecundar }: any) {
   );
 }
 
+function SectiuneIstoricMasuratori({
+  titlu,
+  lista,
+}: {
+  titlu: string;
+  lista: any[];
+}) {
+  return (
+    <Card>
+      <Text style={stiluri.sectiuneTitlu}>{titlu}</Text>
+      {lista.length ? (
+        lista.map((item: any, index: number) => (
+          <View
+            key={item.idMasuratoare ?? index}
+            style={stiluri.randMasuratoare}
+          >
+            <View style={stiluri.randMasuratoareAntet}>
+              <View style={stiluri.randText}>
+                <Text style={stiluri.randTitlu}>
+                  {obtineEtichetaParametru(item.tipParametru)}
+                </Text>
+                <Text style={stiluri.randSubtitlu}>
+                  {formateazaData(item.dataOra)}
+                </Text>
+              </View>
+
+              <Text style={stiluri.randMasuratoareValoare}>
+                {formateazaMasurare(item)}
+              </Text>
+            </View>
+
+            <Text style={stiluri.randMeta}>Stare: {item.stare ?? '-'}</Text>
+          </View>
+        ))
+      ) : (
+        <Text style={stiluri.textGol}>Nu există înregistrări.</Text>
+      )}
+    </Card>
+  );
+}
+
+function extrageMasuratoriDinRaspuns(raspuns: any) {
+  return (
+    raspuns?.masuratori ??
+    raspuns?.Masuratori ??
+    []
+  ).filter(Boolean);
+}
+
+function obtineEtichetaParametru(tipParametru?: string | null) {
+  const cheie = (tipParametru || '').trim().toLowerCase();
+
+  if (cheie === 'temperatura') {
+    return 'Temperatură';
+  }
+
+  if (cheie === 'ecg') {
+    return 'ECG';
+  }
+
+  if (cheie === 'puls') {
+    return 'Puls';
+  }
+
+  return tipParametru || '-';
+}
+
+function formateazaMasurare(item: any) {
+  const valoare = item?.valoare ?? '-';
+  const unitate = String(item?.unitateMasura ?? '').trim();
+  return unitate ? `${valoare} ${unitate}` : String(valoare);
+}
+
+function formateazaData(data?: string | null) {
+  if (!data) {
+    return '-';
+  }
+
+  const dataConvertita = new Date(data);
+
+  if (Number.isNaN(dataConvertita.getTime())) {
+    return '-';
+  }
+
+  return dataConvertita.toLocaleString('ro-RO');
+}
+
 function obtineEroareValidarePrag(formular: {
   tipParametru: string;
   valoareMinima: string;
@@ -388,9 +477,29 @@ const stiluri = StyleSheet.create({
   titlu: { color: culori.text, fontWeight: 'bold', fontSize: 18, flex: 1 },
   sectiuneTitlu: { color: culori.text, fontWeight: 'bold', fontSize: 16, marginBottom: 8 },
   randLista: { borderBottomWidth: 1, borderBottomColor: culori.border, paddingVertical: 12, flexDirection: 'row', justifyContent: 'space-between' },
+  randMasuratoare: {
+    borderBottomWidth: 1,
+    borderBottomColor: culori.border,
+    paddingVertical: 12,
+    gap: 6,
+  },
+  randMasuratoareAntet: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 12,
+  },
   randText: { flex: 1, marginRight: 12 },
   randTitlu: { color: culori.text, fontWeight: 'bold', fontSize: 15, marginBottom: 4 },
   randSubtitlu: { color: culori.textSecundar, fontSize: 13 },
+  randMasuratoareValoare: {
+    color: culori.primar,
+    fontWeight: 'bold',
+    fontSize: 16,
+    textAlign: 'right',
+    maxWidth: '45%',
+  },
+  randMeta: { color: culori.textSecundar, fontSize: 12 },
   textGol: { color: culori.textSecundar },
   eroareFormular: {
     backgroundColor: culori.eroareFundal,

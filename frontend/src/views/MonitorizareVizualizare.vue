@@ -46,7 +46,7 @@
         </thead>
         <tbody>
           <tr v-for="masuratoare in istoric" :key="masuratoare.idMasuratoare">
-            <td data-label="Parametru">{{ masuratoare.tipParametru }}</td>
+            <td data-label="Parametru">{{ etichetaParametru(masuratoare.tipParametru) }}</td>
             <td data-label="Valoare">{{ masuratoare.valoare }}</td>
             <td data-label="Unitate">{{ masuratoare.unitateMasura }}</td>
             <td data-label="Data">{{ new Date(masuratoare.dataOra).toLocaleString('ro-RO') }}</td>
@@ -78,7 +78,7 @@ async function incarcaIstoric() {
   eroare.value = null
   try {
     const raspuns = await pacientApi.obtineIstoric(ultimele.value)
-    istoric.value = raspuns.masuratori
+    istoric.value = extrageMasuratori(raspuns)
   } catch (err: unknown) {
     eroare.value =
       (err as { response?: { data?: { mesaj?: string } } }).response?.data?.mesaj ||
@@ -89,7 +89,7 @@ async function incarcaIstoric() {
 }
 
 function ultimaPentru(tip: string) {
-  return istoric.value.find((m) => m.tipParametru.toLowerCase() === tip)
+  return istoric.value.find((m) => normalizeazaTipParametru(m.tipParametru) === tip)
 }
 
 const carduriMasuratori = computed(() => [
@@ -112,6 +112,36 @@ const carduriMasuratori = computed(() => [
     masuratoare: ultimaPentru('puls'),
   },
 ])
+
+function extrageMasuratori(
+  raspuns: { masuratori?: Masuratoare[]; Masuratori?: Masuratoare[] },
+) {
+  return (raspuns.masuratori ?? raspuns.Masuratori ?? []).filter(Boolean)
+}
+
+function normalizeazaTipParametru(tipParametru?: string | null) {
+  return String(tipParametru ?? '')
+    .trim()
+    .toLowerCase()
+}
+
+function etichetaParametru(tipParametru?: string | null) {
+  const cheie = normalizeazaTipParametru(tipParametru)
+
+  if (cheie === 'temperatura') {
+    return 'Temperatură'
+  }
+
+  if (cheie === 'ecg') {
+    return 'ECG'
+  }
+
+  if (cheie === 'puls') {
+    return 'Puls'
+  }
+
+  return tipParametru || '-'
+}
 </script>
 
 <style scoped>

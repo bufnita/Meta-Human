@@ -18,6 +18,8 @@ type TabAplicatie =
   | 'Pacienti'
   | 'Medici';
 
+type RolUtilizator = 'Pacient' | 'Medic' | 'Admin';
+
 export default function LayoutAplicatie({
   children,
   navigation,
@@ -33,7 +35,7 @@ export default function LayoutAplicatie({
   scroll?: boolean;
   contentStyle?: ViewStyle;
 }) {
-  const [rol, setRol] = useState('Pacient');
+  const [rol, setRol] = useState<RolUtilizator>('Pacient');
   const [numeUtilizator, setNumeUtilizator] = useState('');
 
   useEffect(() => {
@@ -49,7 +51,7 @@ export default function LayoutAplicatie({
     }
 
     const utilizator = JSON.parse(utilizatorSalvat);
-    const rolCurent = utilizator.rol ?? utilizator.Rol ?? 'Pacient';
+    const rolCurent = (utilizator.rol ?? utilizator.Rol ?? 'Pacient') as RolUtilizator;
     const nume = utilizator.nume ?? utilizator.Nume ?? '';
     const prenume = utilizator.prenume ?? utilizator.Prenume ?? '';
 
