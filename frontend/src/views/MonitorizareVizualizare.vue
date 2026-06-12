@@ -5,7 +5,7 @@
         <h1>Monitorizare</h1>
         <p>Ultimele măsurători primite de la dispozitiv</p>
       </div>
-      <select v-model.number="ultimele" @change="incarcaIstoric">
+      <select v-model.number="ultimele" @change="reincarcaIstoricDinSelect">
         <option :value="10">Ultimele 10</option>
         <option :value="50">Ultimele 50</option>
         <option :value="100">Ultimele 100</option>
@@ -40,7 +40,7 @@
             <th>Parametru</th>
             <th>Valoare</th>
             <th>Unitate</th>
-            <th>Data si ora</th>
+            <th>Data și ora</th>
             <th>Stare</th>
           </tr>
         </thead>
@@ -60,7 +60,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { pacientApi } from '../api/pacient'
 import type { Masuratoare } from '../types'
 import { formateazaDataOraRomania } from '../utils/dataOra'
@@ -69,13 +69,28 @@ const istoric = ref<Masuratoare[]>([])
 const incarcare = ref(false)
 const eroare = ref<string | null>(null)
 const ultimele = ref(50)
+const intervalPollingMs = 8000
 
-onMounted(() => {
-  incarcaIstoric()
+let intervalIstoricId: ReturnType<typeof setInterval> | null = null
+
+onMounted(async () => {
+  await incarcaIstoric()
+  pornestePollingIstoric()
 })
 
-async function incarcaIstoric() {
-  incarcare.value = true
+onUnmounted(() => {
+  oprestePollingIstoric()
+})
+
+async function incarcaIstoric(silent = false) {
+  if (incarcare.value) {
+    return
+  }
+
+  if (!silent) {
+    incarcare.value = true
+  }
+
   eroare.value = null
   try {
     const raspuns = await pacientApi.obtineIstoric(ultimele.value)
@@ -87,6 +102,29 @@ async function incarcaIstoric() {
   } finally {
     incarcare.value = false
   }
+}
+
+function reincarcaIstoricDinSelect() {
+  void incarcaIstoric()
+}
+
+function pornestePollingIstoric() {
+  if (intervalIstoricId !== null) {
+    return
+  }
+
+  intervalIstoricId = setInterval(() => {
+    void incarcaIstoric(true)
+  }, intervalPollingMs)
+}
+
+function oprestePollingIstoric() {
+  if (intervalIstoricId === null) {
+    return
+  }
+
+  clearInterval(intervalIstoricId)
+  intervalIstoricId = null
 }
 
 function ultimaPentru(tip: string) {

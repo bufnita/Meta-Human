@@ -376,7 +376,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { usePacientiStore } from '../stores/pacienti'
 import type { IstoricMasuratori, Masuratoare, PragAlerta, Recomandare } from '../types'
@@ -388,11 +388,14 @@ const pacientiStore = usePacientiStore()
 
 const pacientId = Number(route.params.id)
 const numarMasuratori = ref(50)
+const intervalPollingMs = 8000
 const arataFormularPrag = ref(false)
 const pragEditatId = ref<number | null>(null)
 const arataFormularRecomandare = ref(false)
 const recomandareEditataId = ref<number | null>(null)
 const editareActiva = ref(false)
+
+let intervalIstoricId: ReturnType<typeof setInterval> | null = null
 
 const formularPacientGol = () => ({
   idMedic: undefined as number | undefined,
@@ -498,6 +501,11 @@ onMounted(async () => {
   await pacientiStore.incarcaAlertePatient(pacientId)
   await pacientiStore.incarcaPraguri(pacientId)
   await pacientiStore.incarcaRecomandari(pacientId)
+  pornestePollingIstoric()
+})
+
+onUnmounted(() => {
+  oprestePollingIstoric()
 })
 
 function pregatesteFormularPacient() {
@@ -566,6 +574,25 @@ async function salveazaPacient() {
 
 async function reincarcaIstoric() {
   await pacientiStore.incarcaIstoric(pacientId, numarMasuratori.value)
+}
+
+function pornestePollingIstoric() {
+  if (intervalIstoricId !== null) {
+    return
+  }
+
+  intervalIstoricId = setInterval(() => {
+    void pacientiStore.incarcaIstoric(pacientId, numarMasuratori.value)
+  }, intervalPollingMs)
+}
+
+function oprestePollingIstoric() {
+  if (intervalIstoricId === null) {
+    return
+  }
+
+  clearInterval(intervalIstoricId)
+  intervalIstoricId = null
 }
 
 function comutaFormularPrag() {

@@ -10,6 +10,7 @@ const formatterDataOraRomania = new Intl.DateTimeFormat(LOCALE, {
   year: 'numeric',
   hour: '2-digit',
   minute: '2-digit',
+  second: '2-digit',
   hour12: false,
 })
 
@@ -28,12 +29,12 @@ export function formateazaDataOraRomania(dataOra?: string | null) {
   const valori = Object.fromEntries(
     parti
       .filter((parte) =>
-        ['day', 'month', 'year', 'hour', 'minute'].includes(parte.type),
+        ['day', 'month', 'year', 'hour', 'minute', 'second'].includes(parte.type),
       )
       .map((parte) => [parte.type, parte.value]),
-  ) as Record<'day' | 'month' | 'year' | 'hour' | 'minute', string>
+  ) as Record<'day' | 'month' | 'year' | 'hour' | 'minute' | 'second', string>
 
-  return `${valori.day}.${valori.month}.${valori.year}, ${valori.hour}:${valori.minute}`
+  return `${valori.day}.${valori.month}.${valori.year}, ${valori.hour}:${valori.minute}:${valori.second}`
 }
 
 function parseazaDataOraCaUtc(dataOra: string) {
