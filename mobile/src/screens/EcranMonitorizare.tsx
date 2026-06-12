@@ -47,6 +47,8 @@ type PoliticaMetrica = {
   unitate: string;
 };
 
+type ValoareTemporizata = { valoare: number; timestamp: number };
+
 const VALORI_LIVE_INITIALE: ValoriLive = {
   temperatura: null,
   ecg: null,
@@ -84,41 +86,103 @@ const NUMAR_MAXIM_MOSTRE_ECG = 8;
 const INTERVAL_VERIFICARE_VALORI_MS = 1000;
 const INTERVAL_TRIMITERE_BACKEND_MS = 5000;
 
+const creeazaUltimeleValoriValideInitiale = () => ({
+  temperatura: null,
+  ecg: null,
+  puls: null,
+});
+
+const creeazaUltimeleValoriTrimiseInitiale = () => ({
+  temperatura: { valoare: null, timestamp: 0 },
+  ecg: { valoare: null, timestamp: 0 },
+  puls: { valoare: null, timestamp: 0 },
+});
+
+const creeazaUltimeleActualizariAfisateInitiale = () => ({
+  temperatura: 0,
+  ecg: 0,
+  puls: 0,
+});
+
+const sesiuneBluetoothPersistenta: {
+  conectat: boolean;
+  dispozitiv: BluetoothDevice | null;
+  valoriLive: ValoriLive;
+  bufferBluetooth: string;
+  mostrePuls: number[];
+  mostreEcg: number[];
+  ultimeleValoriValide: Record<TipMetrica, ValoareTemporizata | null>;
+  ultimeleValoriTrimise: Record<
+    TipMetrica,
+    { valoare: number | null; timestamp: number }
+  >;
+  ultimeleActualizariAfisate: Record<TipMetrica, number>;
+} = {
+  conectat: false,
+  dispozitiv: null,
+  valoriLive: { ...VALORI_LIVE_INITIALE },
+  bufferBluetooth: '',
+  mostrePuls: [],
+  mostreEcg: [],
+  ultimeleValoriValide: creeazaUltimeleValoriValideInitiale(),
+  ultimeleValoriTrimise: creeazaUltimeleValoriTrimiseInitiale(),
+  ultimeleActualizariAfisate: creeazaUltimeleActualizariAfisateInitiale(),
+};
+
 export default function EcranMonitorizare({ navigation }: any) {
-  const [conectat, setConectat] = useState(false);
+  const [conectat, setConectat] = useState(
+    sesiuneBluetoothPersistenta.conectat,
+  );
   const [valoriLive, setValoriLive] = useState<ValoriLive>({
-    ...VALORI_LIVE_INITIALE,
+    ...sesiuneBluetoothPersistenta.valoriLive,
   });
-  const [dispozitiv, setDispozitiv] = useState<BluetoothDevice | null>(null);
+  const [dispozitiv, setDispozitiv] = useState<BluetoothDevice | null>(
+    sesiuneBluetoothPersistenta.dispozitiv,
+  );
   const [idPacient, setIdPacient] = useState<number | null>(null);
   const [masuratori, setMasuratori] = useState<Masuratoare[]>([]);
   const [seIncarca, setSeIncarca] = useState(false);
 
-  const bufferBluetoothRef = useRef('');
-  const mostrePulsRef = useRef<number[]>([]);
-  const mostreEcgRef = useRef<number[]>([]);
-  const valoriLiveRef = useRef<ValoriLive>({ ...VALORI_LIVE_INITIALE });
+  const bufferBluetoothRef = useRef(sesiuneBluetoothPersistenta.bufferBluetooth);
+  const mostrePulsRef = useRef<number[]>([
+    ...sesiuneBluetoothPersistenta.mostrePuls,
+  ]);
+  const mostreEcgRef = useRef<number[]>([
+    ...sesiuneBluetoothPersistenta.mostreEcg,
+  ]);
+  const valoriLiveRef = useRef<ValoriLive>({
+    ...sesiuneBluetoothPersistenta.valoriLive,
+  });
   const trimitereInCursRef = useRef(false);
   const ascultatorDateRef = useRef<{ remove?: () => void } | null>(null);
   const ultimeleValoriValideRef = useRef<
-    Record<TipMetrica, { valoare: number; timestamp: number } | null>
+    Record<TipMetrica, ValoareTemporizata | null>
   >({
-    temperatura: null,
-    ecg: null,
-    puls: null,
+    ...sesiuneBluetoothPersistenta.ultimeleValoriValide,
   });
   const ultimeleValoriTrimiseRef = useRef<
     Record<TipMetrica, { valoare: number | null; timestamp: number }>
   >({
-    temperatura: { valoare: null, timestamp: 0 },
-    ecg: { valoare: null, timestamp: 0 },
-    puls: { valoare: null, timestamp: 0 },
+    ...sesiuneBluetoothPersistenta.ultimeleValoriTrimise,
   });
   const ultimeleActualizariAfisateRef = useRef<Record<TipMetrica, number>>({
-    temperatura: 0,
-    ecg: 0,
-    puls: 0,
+    ...sesiuneBluetoothPersistenta.ultimeleActualizariAfisate,
   });
+
+  const sincronizeazaSesiuneaBluetooth = useCallback(() => {
+    sesiuneBluetoothPersistenta.bufferBluetooth = bufferBluetoothRef.current;
+    sesiuneBluetoothPersistenta.mostrePuls = [...mostrePulsRef.current];
+    sesiuneBluetoothPersistenta.mostreEcg = [...mostreEcgRef.current];
+    sesiuneBluetoothPersistenta.ultimeleValoriValide = {
+      ...ultimeleValoriValideRef.current,
+    };
+    sesiuneBluetoothPersistenta.ultimeleValoriTrimise = {
+      ...ultimeleValoriTrimiseRef.current,
+    };
+    sesiuneBluetoothPersistenta.ultimeleActualizariAfisate = {
+      ...ultimeleActualizariAfisateRef.current,
+    };
+  }, []);
 
   const cerePermisiuni = useCallback(async () => {
     if (Platform.OS === 'android') {
@@ -158,21 +222,11 @@ export default function EcranMonitorizare({ navigation }: any) {
     mostrePulsRef.current = [];
     mostreEcgRef.current = [];
     valoriLiveRef.current = { ...VALORI_LIVE_INITIALE };
-    ultimeleValoriValideRef.current = {
-      temperatura: null,
-      ecg: null,
-      puls: null,
-    };
-    ultimeleValoriTrimiseRef.current = {
-      temperatura: { valoare: null, timestamp: 0 },
-      ecg: { valoare: null, timestamp: 0 },
-      puls: { valoare: null, timestamp: 0 },
-    };
-    ultimeleActualizariAfisateRef.current = {
-      temperatura: 0,
-      ecg: 0,
-      puls: 0,
-    };
+    ultimeleValoriValideRef.current = creeazaUltimeleValoriValideInitiale();
+    ultimeleValoriTrimiseRef.current = creeazaUltimeleValoriTrimiseInitiale();
+    ultimeleActualizariAfisateRef.current =
+      creeazaUltimeleActualizariAfisateInitiale();
+    sincronizeazaSesiuneaBluetooth();
     setValoriLive({ ...VALORI_LIVE_INITIALE });
   };
 
@@ -210,7 +264,8 @@ export default function EcranMonitorizare({ navigation }: any) {
     ascultatorDateRef.current?.remove?.();
     ascultatorDateRef.current = null;
     bufferBluetoothRef.current = '';
-  }, []);
+    sincronizeazaSesiuneaBluetooth();
+  }, [sincronizeazaSesiuneaBluetooth]);
 
   const citesteDatele = (dev: BluetoothDevice) => {
     const ascultator = dev.onDataReceived(eveniment => {
@@ -359,6 +414,8 @@ export default function EcranMonitorizare({ navigation }: any) {
       mostrePulsRef.current = [];
     }
 
+    sincronizeazaSesiuneaBluetooth();
+
     if (Object.keys(actualizari).length) {
       setValoriLive(curent => ({ ...curent, ...actualizari }));
     }
@@ -450,6 +507,7 @@ export default function EcranMonitorizare({ navigation }: any) {
           valoare,
           timestamp: Date.now(),
         };
+        sincronizeazaSesiuneaBluetooth();
 
         const masuratoareNoua = normalizeazaMasuratoare(raspuns);
 
@@ -491,12 +549,44 @@ export default function EcranMonitorizare({ navigation }: any) {
 
   useEffect(() => {
     valoriLiveRef.current = valoriLive;
+    sesiuneBluetoothPersistenta.valoriLive = { ...valoriLive };
   }, [valoriLive]);
+
+  useEffect(() => {
+    sesiuneBluetoothPersistenta.conectat = conectat;
+  }, [conectat]);
+
+  useEffect(() => {
+    sesiuneBluetoothPersistenta.dispozitiv = dispozitiv;
+  }, [dispozitiv]);
 
   useEffect(() => {
     const initializare = async () => {
       await cerePermisiuni();
       await incarcaDate();
+
+      if (
+        sesiuneBluetoothPersistenta.conectat &&
+        sesiuneBluetoothPersistenta.dispozitiv
+      ) {
+        const dispozitivPersistat = sesiuneBluetoothPersistenta.dispozitiv;
+        const esteConectatInContinuare = await dispozitivPersistat
+          .isConnected()
+          .catch(() => false);
+
+        if (esteConectatInContinuare) {
+          setDispozitiv(dispozitivPersistat);
+          setConectat(true);
+          citesteDatele(dispozitivPersistat);
+          return;
+        }
+
+        sesiuneBluetoothPersistenta.conectat = false;
+        sesiuneBluetoothPersistenta.dispozitiv = null;
+        setConectat(false);
+        setDispozitiv(null);
+        reseteazaStareaLive();
+      }
     };
 
     initializare().catch(() => {

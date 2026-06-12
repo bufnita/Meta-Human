@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, Modal } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Alert, Modal, TouchableOpacity } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Card from '../components/Card';
 import Badge from '../components/Badge';
@@ -23,6 +23,21 @@ import { formateazaDataOraRomania } from '../utils/dataOra';
 
 type RolUtilizator = 'Pacient' | 'Medic' | 'Admin';
 
+const TIPURI_PARAMETRU = [
+  { valoare: 'temperatura', eticheta: 'Temperatura' },
+  { valoare: 'puls', eticheta: 'Puls' },
+  { valoare: 'ecg', eticheta: 'ECG' },
+];
+
+function formularPragGol() {
+  return {
+    tipParametru: 'temperatura',
+    valoareMinima: '',
+    valoareMaxima: '',
+    durataPersistentaSec: '1',
+  };
+}
+
 export default function EcranPacientDetalii({ navigation, route }: any) {
   const idPacient = route.params?.idPacient;
 
@@ -38,12 +53,7 @@ export default function EcranPacientDetalii({ navigation, route }: any) {
   const [formularPacient, setFormularPacient] = useState<any>({});
 
   const [formularPragDeschis, setFormularPragDeschis] = useState(false);
-  const [formularPrag, setFormularPrag] = useState({
-    tipParametru: 'temperatura',
-    valoareMinima: '',
-    valoareMaxima: '',
-    durataPersistentaSec: '1',
-  });
+  const [formularPrag, setFormularPrag] = useState(formularPragGol());
   const eroareValidarePrag = obtineEroareValidarePrag(formularPrag);
 
   const [formularRecomandareDeschis, setFormularRecomandareDeschis] = useState(false);
@@ -134,6 +144,7 @@ export default function EcranPacientDetalii({ navigation, route }: any) {
         durataPersistentaSec: Number(formularPrag.durataPersistentaSec || 1),
         activ: true,
       });
+      setFormularPrag(formularPragGol());
       setFormularPragDeschis(false);
       await incarcaDate();
     } catch {
@@ -225,13 +236,19 @@ export default function EcranPacientDetalii({ navigation, route }: any) {
         <Card>
           <View style={stiluri.antetCard}>
             <Text style={stiluri.sectiuneTitlu}>Praguri de alertă</Text>
-            <ButonContur text="+ Adaugă prag" onPress={() => setFormularPragDeschis(true)} />
+            <ButonContur
+              text="+ Adaugă prag"
+              onPress={() => {
+                setFormularPrag(formularPragGol());
+                setFormularPragDeschis(true);
+              }}
+            />
           </View>
 
           {praguri.length ? praguri.map(prag => (
             <View key={prag.idPragAlerta ?? prag.idPrag} style={stiluri.randLista}>
               <View style={stiluri.randText}>
-                <Text style={stiluri.randTitlu}>{prag.tipParametru}</Text>
+                <Text style={stiluri.randTitlu}>{obtineEtichetaParametru(prag.tipParametru)}</Text>
                 <Text style={stiluri.randSubtitlu}>Min: {prag.valoareMinima ?? '-'} · Max: {prag.valoareMaxima ?? '-'}</Text>
               </View>
               <ButonContur
@@ -284,7 +301,36 @@ export default function EcranPacientDetalii({ navigation, route }: any) {
       <Modal visible={formularPragDeschis} animationType="slide">
         <ScrollView contentContainerStyle={stiluri.continut}>
           <Text style={stiluri.titluPagina}>Prag nou</Text>
-          <CampText label="Tip parametru" value={formularPrag.tipParametru} onChangeText={v => setFormularPrag({ ...formularPrag, tipParametru: v })} />
+          <View style={stiluri.campSelectie}>
+            <Text style={stiluri.etichetaCamp}>Tip parametru</Text>
+            <View style={stiluri.optiuniParametru}>
+              {TIPURI_PARAMETRU.map(optiune => {
+                const selectat = formularPrag.tipParametru === optiune.valoare;
+
+                return (
+                  <TouchableOpacity
+                    key={optiune.valoare}
+                    style={[
+                      stiluri.optiuneParametru,
+                      selectat ? stiluri.optiuneParametruActiva : null,
+                    ]}
+                    onPress={() =>
+                      setFormularPrag({ ...formularPrag, tipParametru: optiune.valoare })
+                    }
+                  >
+                    <Text
+                      style={[
+                        stiluri.optiuneParametruText,
+                        selectat ? stiluri.optiuneParametruTextActiv : null,
+                      ]}
+                    >
+                      {optiune.eticheta}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
           <CampText label="Valoare minimă" value={formularPrag.valoareMinima} onChangeText={v => setFormularPrag({ ...formularPrag, valoareMinima: v })} keyboardType="numeric" />
           <CampText label="Valoare maximă" value={formularPrag.valoareMaxima} onChangeText={v => setFormularPrag({ ...formularPrag, valoareMaxima: v })} keyboardType="numeric" />
           <CampText label="Durată persistență secunde" value={formularPrag.durataPersistentaSec} onChangeText={v => setFormularPrag({ ...formularPrag, durataPersistentaSec: v })} keyboardType="numeric" />
@@ -292,7 +338,13 @@ export default function EcranPacientDetalii({ navigation, route }: any) {
             <Text style={stiluri.eroareFormular}>{eroareValidarePrag}</Text>
           ) : null}
           <ButonPrimar text="Salvează" onPress={salveazaPrag} disabled={!!eroareValidarePrag} />
-          <ButonContur text="Anulează" onPress={() => setFormularPragDeschis(false)} />
+          <ButonContur
+            text="Anulează"
+            onPress={() => {
+              setFormularPrag(formularPragGol());
+              setFormularPragDeschis(false);
+            }}
+          />
         </ScrollView>
       </Modal>
 
@@ -322,13 +374,21 @@ function SectiuneLista({ titlu, lista, campPrincipal, campSecundar }: any) {
       {lista.length ? lista.map((item: any, index: number) => (
         <View key={item.idMasuratoare ?? item.idAlerta ?? index} style={stiluri.randLista}>
           <View style={stiluri.randText}>
-            <Text style={stiluri.randTitlu}>{item[campPrincipal]}</Text>
+            <Text style={stiluri.randTitlu}>{formateazaCampPrincipalLista(item, campPrincipal)}</Text>
             <Text style={stiluri.randSubtitlu}>{String(item[campSecundar] ?? '-')}</Text>
           </View>
         </View>
       )) : <Text style={stiluri.textGol}>Nu există înregistrări.</Text>}
     </Card>
   );
+}
+
+function formateazaCampPrincipalLista(item: any, campPrincipal: string) {
+  if (campPrincipal === 'tipAlerta') {
+    return obtineEtichetaAlerta(item?.[campPrincipal]);
+  }
+
+  return String(item?.[campPrincipal] ?? '-');
 }
 
 function SectiuneIstoricMasuratori({
@@ -398,6 +458,16 @@ function obtineEtichetaParametru(tipParametru?: string | null) {
   return tipParametru || '-';
 }
 
+function obtineEtichetaAlerta(tipAlerta?: string | null) {
+  const cheie = String(tipAlerta ?? '').trim().toLowerCase().replace(/\s+/g, '');
+
+  if (cheie === 'depasireprag' || cheie === 'pragdepasit' || cheie === 'pragdepășit') {
+    return 'Prag depășit';
+  }
+
+  return tipAlerta || '-';
+}
+
 function formateazaMasurare(item: any) {
   const valoare = item?.valoare ?? '-';
   const unitate = String(item?.unitateMasura ?? '').trim();
@@ -425,6 +495,10 @@ function obtineEroareValidarePrag(formular: {
 
   if (!formular.durataPersistentaSec || !Number.isFinite(durataPersistentaSec) || durataPersistentaSec < 1) {
     return 'Durata de persistență trebuie să fie mai mare sau egală cu 1 secundă.';
+  }
+
+  if (valoareMinima === null && valoareMaxima === null) {
+    return 'Configurează cel puțin o valoare minimă sau maximă.';
   }
 
   if (
@@ -504,6 +578,23 @@ const stiluri = StyleSheet.create({
   randText: { flex: 1, marginRight: 12 },
   randTitlu: { color: culori.text, fontWeight: 'bold', fontSize: 15, marginBottom: 4 },
   randSubtitlu: { color: culori.textSecundar, fontSize: 13 },
+  campSelectie: { marginBottom: 12 },
+  etichetaCamp: { color: culori.text, fontWeight: '600', marginBottom: 8 },
+  optiuniParametru: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  optiuneParametru: {
+    borderWidth: 1,
+    borderColor: culori.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#fff',
+  },
+  optiuneParametruActiva: {
+    borderColor: culori.primar,
+    backgroundColor: culori.primar,
+  },
+  optiuneParametruText: { color: culori.text, fontWeight: '600' },
+  optiuneParametruTextActiv: { color: '#fff' },
   randMasuratoareValoare: {
     color: culori.primar,
     fontWeight: 'bold',

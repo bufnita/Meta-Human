@@ -29,13 +29,21 @@ public class PragAlertaService
     {
         var pacient = await ObtinePacientCuAccesAsync(idPacient, cancellationToken);
         var idMedic = await RezolvaIdMedicPentruPacientAsync(pacient, cancellationToken);
-        ValideazaValoriPrag(cerere);
+        var tipParametru = ParametruClinicHelper.NormalizeazaSauArunca(cerere.TipParametru);
+
+        ValideazaValoriPrag(tipParametru, cerere);
+        await ValideazaPragDuplicatAsync(
+            idPacient,
+            tipParametru,
+            cerere,
+            idPragDeIgnorat: null,
+            cancellationToken);
 
         var prag = new PragAlerta
         {
             IdPacient = idPacient,
             IdMedic = idMedic,
-            TipParametru = cerere.TipParametru.Trim(),
+            TipParametru = tipParametru,
             ValoareMinima = cerere.ValoareMinima,
             ValoareMaxima = cerere.ValoareMaxima,
             DurataPersistentaSec = cerere.DurataPersistentaSec,
@@ -70,9 +78,17 @@ public class PragAlertaService
     {
         await ObtinePacientCuAccesAsync(idPacient, cancellationToken);
         var prag = await ObtinePragPentruPacientAsync(idPacient, idPrag, cancellationToken);
-        ValideazaValoriPrag(cerere);
+        var tipParametru = ParametruClinicHelper.NormalizeazaSauArunca(cerere.TipParametru);
 
-        prag.TipParametru = cerere.TipParametru.Trim();
+        ValideazaValoriPrag(tipParametru, cerere);
+        await ValideazaPragDuplicatAsync(
+            idPacient,
+            tipParametru,
+            cerere,
+            idPrag,
+            cancellationToken);
+
+        prag.TipParametru = tipParametru;
         prag.ValoareMinima = cerere.ValoareMinima;
         prag.ValoareMaxima = cerere.ValoareMaxima;
         prag.DurataPersistentaSec = cerere.DurataPersistentaSec;
@@ -103,14 +119,20 @@ public class PragAlertaService
             .FirstOrDefaultAsync(p => p.IdPacient == idPacient, cancellationToken);
 
         if (pacient == null)
-            throw new ResursaNegasitaException("Pacientul nu a fost găsit.");
+        {
+            throw new ResursaNegasitaException("Pacientul nu a fost gasit.");
+        }
 
         if (_utilizatorCurent.EsteAdmin)
+        {
             return pacient;
+        }
 
         var idMedic = await ObtineIdMedicObligatoriuAsync(cancellationToken);
         if (pacient.IdMedic != idMedic)
-            throw new AccesInterzisException("Nu aveți acces la acest pacient.");
+        {
+            throw new AccesInterzisException("Nu aveti acces la acest pacient.");
+        }
 
         return pacient;
     }
@@ -120,11 +142,15 @@ public class PragAlertaService
         CancellationToken cancellationToken)
     {
         if (_utilizatorCurent.EsteAdmin)
+        {
             return pacient.IdMedic;
+        }
 
         var idMedic = await ObtineIdMedicObligatoriuAsync(cancellationToken);
         if (pacient.IdMedic != idMedic)
-            throw new AccesInterzisException("Nu aveți acces la acest pacient.");
+        {
+            throw new AccesInterzisException("Nu aveti acces la acest pacient.");
+        }
 
         return idMedic;
     }
@@ -133,7 +159,9 @@ public class PragAlertaService
     {
         var idMedic = await _identitateClinicala.ObtineIdMedicCurentAsync(cancellationToken);
         if (!idMedic.HasValue)
-            throw new AccesInterzisException("Profilul de medic nu a fost găsit.");
+        {
+            throw new AccesInterzisException("Profilul de medic nu a fost gasit.");
+        }
 
         return idMedic.Value;
     }
@@ -149,28 +177,57 @@ public class PragAlertaService
                 cancellationToken);
 
         if (prag == null)
-            throw new ResursaNegasitaException("Pragul de alertă nu a fost găsit.");
+        {
+            throw new ResursaNegasitaException("Pragul de alerta nu a fost gasit.");
+        }
 
         return prag;
     }
 
-    private static void ValideazaValoriPrag(CererePragAlertaDTO cerere)
+    private async Task ValideazaPragDuplicatAsync(
+        int idPacient,
+        string tipParametru,
+        CererePragAlertaDTO cerere,
+        int? idPragDeIgnorat,
+        CancellationToken cancellationToken)
     {
-        var interval = cerere.TipParametru.Trim().ToLowerInvariant() switch
+        var pragDuplicatExista = await _context.PraguriAlerta.AnyAsync(
+            prag =>
+                prag.IdPacient == idPacient
+                && prag.IdPrag != idPragDeIgnorat
+                && prag.TipParametru.ToLower() == tipParametru
+                && prag.ValoareMinima == cerere.ValoareMinima
+                && prag.ValoareMaxima == cerere.ValoareMaxima
+                && prag.DurataPersistentaSec == cerere.DurataPersistentaSec
+                && prag.Activ == cerere.Activ,
+            cancellationToken);
+
+        if (pragDuplicatExista)
         {
-            "puls" => (Minim: 1m, Maxim: 300m),
-            "temperatura" => (Minim: 20m, Maxim: 45m),
-            "ecg" => (Minim: 0m, Maxim: 1023m),
-            _ => ((decimal Minim, decimal Maxim)?)null
-        };
+            throw new InvalidOperationException(
+                "Exista deja un prag identic configurat pentru acest parametru.");
+        }
+    }
+
+    private static void ValideazaValoriPrag(
+        string tipParametru,
+        CererePragAlertaDTO cerere)
+    {
+        if (!cerere.ValoareMinima.HasValue && !cerere.ValoareMaxima.HasValue)
+        {
+            throw new InvalidOperationException(
+                "Trebuie configurata cel putin o valoare minima sau maxima.");
+        }
+
+        var interval = ParametruClinicHelper.ObtineIntervalFiziologic(tipParametru);
 
         if (interval.HasValue
             && (EsteInAfaraIntervalului(cerere.ValoareMinima, interval.Value)
                 || EsteInAfaraIntervalului(cerere.ValoareMaxima, interval.Value)))
         {
             throw new InvalidOperationException(
-                $"Valorile pragului pentru {cerere.TipParametru.Trim()} trebuie să fie între "
-                + $"{interval.Value.Minim} și {interval.Value.Maxim}.");
+                $"Valorile pragului pentru {tipParametru} trebuie sa fie intre "
+                + $"{interval.Value.Minim} si {interval.Value.Maxim}.");
         }
 
         if (cerere.ValoareMinima.HasValue
@@ -178,7 +235,7 @@ public class PragAlertaService
             && cerere.ValoareMinima.Value >= cerere.ValoareMaxima.Value)
         {
             throw new InvalidOperationException(
-                "Valoarea minimă trebuie să fie mai mică decât valoarea maximă.");
+                "Valoarea minima trebuie sa fie mai mica decat valoarea maxima.");
         }
     }
 
@@ -190,14 +247,14 @@ public class PragAlertaService
             && (valoare.Value < interval.Minim || valoare.Value > interval.Maxim);
     }
 
-    private static RaspunsPragAlertaDTO MapLaRaspuns(PragAlerta p) => new()
+    private static RaspunsPragAlertaDTO MapLaRaspuns(PragAlerta prag) => new()
     {
-        IdPrag = p.IdPrag,
-        IdPacient = p.IdPacient,
-        TipParametru = p.TipParametru,
-        ValoareMinima = p.ValoareMinima,
-        ValoareMaxima = p.ValoareMaxima,
-        DurataPersistentaSec = p.DurataPersistentaSec,
-        Activ = p.Activ
+        IdPrag = prag.IdPrag,
+        IdPacient = prag.IdPacient,
+        TipParametru = ParametruClinicHelper.NormalizeazaFaraValidare(prag.TipParametru),
+        ValoareMinima = prag.ValoareMinima,
+        ValoareMaxima = prag.ValoareMaxima,
+        DurataPersistentaSec = prag.DurataPersistentaSec,
+        Activ = prag.Activ
     };
 }

@@ -21,10 +21,10 @@
       </div>
     </div>
 
-    <div v-if="alarmeStore.incarcare" class="card">Se încarcă...</div>
+    <div v-if="seIncarcaInitial" class="card">Se încarcă...</div>
     <div v-if="alarmeStore.eroare" class="eroare">{{ alarmeStore.eroare }}</div>
 
-    <table v-if="!alarmeStore.incarcare && alarmeAfisate.length">
+    <table v-if="!seIncarcaInitial && alarmeAfisate.length">
       <thead>
         <tr>
           <th v-if="!utilizatorStore.estePacient">Pacient</th>
@@ -45,7 +45,7 @@
           <td v-if="!utilizatorStore.estePacient" data-label="Pacient">
             {{ alerta.pacientNume }} {{ alerta.pacientPrenume }}
           </td>
-          <td data-label="Parametru">{{ alerta.parametruAsociat }}</td>
+          <td data-label="Parametru">{{ etichetaParametru(alerta.parametruAsociat) }}</td>
           <td data-label="Valoare">{{ alerta.valoareConstatata }}</td>
           <td data-label="Mesaj">{{ alerta.mesaj }}</td>
           <td data-label="Stare">
@@ -53,7 +53,7 @@
               {{ alerta.stare }}
             </span>
           </td>
-          <td data-label="Data">{{ new Date(alerta.dataOra).toLocaleString('ro-RO') }}</td>
+          <td data-label="Data">{{ formateazaDataOraRomania(alerta.dataOra) }}</td>
           <td v-if="!utilizatorStore.estePacient" class="td-actiuni">
             <button
               class="btn-contur"
@@ -74,20 +74,26 @@
       </tbody>
     </table>
 
-    <div v-else-if="!alarmeStore.incarcare" class="card">
+    <div v-else-if="!seIncarcaInitial" class="card">
       Nu există alerte pentru filtrul selectat.
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useAlarmeStore } from '../stores/alarme'
 import { useUtilizatorStore } from '../stores/utilizator'
+import { formateazaDataOraRomania } from '../utils/dataOra'
 
 const alarmeStore = useAlarmeStore()
 const utilizatorStore = useUtilizatorStore()
 const filtru = ref<'toate' | 'active'>('active')
+const intervalPollingMs = 12000
+const seIncarcaInitial = ref(true)
+const initializareFinalizata = ref(false)
+
+let intervalAlerteId: ReturnType<typeof setInterval> | null = null
 
 const alarmeAfisate = computed(() => {
   return filtru.value === 'active' ? alarmeStore.alarmeActive : alarmeStore.alarme
@@ -95,13 +101,50 @@ const alarmeAfisate = computed(() => {
 
 onMounted(async () => {
   utilizatorStore.incarcaDinStorage()
-  if (utilizatorStore.estePacient) {
-    await alarmeStore.incarcaPacient()
-  } else {
-    await alarmeStore.incarcaToate()
-    await alarmeStore.incarcaActive()
-  }
+  await incarcaAlerte()
+  pornestePollingAlerte()
 })
+
+onUnmounted(() => {
+  oprestePollingAlerte()
+})
+
+async function incarcaAlerte(silent = false) {
+  if (!silent && !initializareFinalizata.value) {
+    seIncarcaInitial.value = true
+  }
+
+  try {
+    if (utilizatorStore.estePacient) {
+      await alarmeStore.incarcaPacient()
+      return
+    }
+
+    await Promise.all([alarmeStore.incarcaToate(), alarmeStore.incarcaActive()])
+  } finally {
+    initializareFinalizata.value = true
+    seIncarcaInitial.value = false
+  }
+}
+
+function pornestePollingAlerte() {
+  if (intervalAlerteId !== null) {
+    return
+  }
+
+  intervalAlerteId = setInterval(() => {
+    void incarcaAlerte(true)
+  }, intervalPollingMs)
+}
+
+function oprestePollingAlerte() {
+  if (intervalAlerteId === null) {
+    return
+  }
+
+  clearInterval(intervalAlerteId)
+  intervalAlerteId = null
+}
 
 function schimbaFiltru(valoare: 'toate' | 'active') {
   filtru.value = valoare
@@ -111,12 +154,38 @@ function esteActiva(stare: string) {
   return stare === 'Activa' || stare === 'Activă'
 }
 
+function normalizeazaTipParametru(tipParametru?: string | null) {
+  return String(tipParametru ?? '')
+    .trim()
+    .toLowerCase()
+}
+
+function etichetaParametru(tipParametru?: string | null) {
+  const cheie = normalizeazaTipParametru(tipParametru)
+
+  if (cheie === 'temperatura') {
+    return 'Temperatură'
+  }
+
+  if (cheie === 'puls') {
+    return 'Puls'
+  }
+
+  if (cheie === 'ecg') {
+    return 'ECG'
+  }
+
+  return tipParametru || '-'
+}
+
 async function rezolva(id: number) {
   await alarmeStore.rezolva(id)
+  await incarcaAlerte(true)
 }
 
 async function ignora(id: number) {
   await alarmeStore.ignora(id)
+  await incarcaAlerte(true)
 }
 </script>
 

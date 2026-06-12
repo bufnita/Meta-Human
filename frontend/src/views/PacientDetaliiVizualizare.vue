@@ -200,9 +200,9 @@
             <tr
               v-for="alerta in pacientiStore.alerte"
               :key="alerta.idAlerta"
-              :class="{ 'row-activa': alerta.stare === 'Activă' }"
+              :class="{ 'row-activa': esteActiva(alerta.stare) }"
             >
-              <td>{{ alerta.parametruAsociat }}</td>
+              <td>{{ etichetaParametru(alerta.parametruAsociat) }}</td>
               <td>{{ alerta.valoareConstatata }}</td>
               <td>{{ alerta.mesaj }}</td>
               <td>{{ alerta.stare }}</td>
@@ -228,7 +228,15 @@
             <div class="rand-campuri">
               <div class="camp">
                 <label>Tip parametru *</label>
-                <input v-model="formularPrag.tipParametru" placeholder="ex: Puls" required />
+                <select v-model="formularPrag.tipParametru" required>
+                  <option
+                    v-for="optiune in TIPURI_PARAMETRU"
+                    :key="optiune.valoare"
+                    :value="optiune.valoare"
+                  >
+                    {{ optiune.eticheta }}
+                  </option>
+                </select>
               </div>
               <div class="camp">
                 <label>Durată persistență (sec) *</label>
@@ -271,7 +279,7 @@
           </thead>
           <tbody>
             <tr v-for="prag in pacientiStore.praguri" :key="prag.idPrag">
-              <td>{{ prag.tipParametru }}</td>
+              <td>{{ etichetaParametru(prag.tipParametru) }}</td>
               <td>{{ prag.valoareMinima ?? '-' }}</td>
               <td>{{ prag.valoareMaxima ?? '-' }}</td>
               <td>{{ prag.durataPersistentaSec }}</td>
@@ -416,8 +424,14 @@ const formularPacientGol = () => ({
 })
 const formularPacient = ref(formularPacientGol())
 
+const TIPURI_PARAMETRU = [
+  { valoare: 'temperatura', eticheta: 'Temperatura' },
+  { valoare: 'puls', eticheta: 'Puls' },
+  { valoare: 'ecg', eticheta: 'ECG' },
+]
+
 const formularPragGol = () => ({
-  tipParametru: '',
+  tipParametru: 'temperatura',
   valoareMinima: undefined as number | undefined,
   valoareMaxima: undefined as number | undefined,
   durataPersistentaSec: 60,
@@ -435,6 +449,10 @@ const eroareValidarePrag = computed(() => {
 
   if (formularPrag.value.durataPersistentaSec < 1) {
     return 'Durata de persistență trebuie să fie mai mare sau egală cu 1 secundă.'
+  }
+
+  if (valoareMinima === undefined && valoareMaxima === undefined) {
+    return 'Configureaza cel putin o valoare minima sau maxima.'
   }
 
   if (
@@ -578,7 +596,12 @@ async function salveazaPacient() {
 }
 
 async function reincarcaIstoric() {
-  await pacientiStore.incarcaIstoric(pacientId, numarMasuratori.value)
+  await Promise.all([
+    pacientiStore.incarcaIstoric(pacientId, numarMasuratori.value),
+    afiseazaAlerteSiRecomandari.value
+      ? pacientiStore.incarcaAlertePatient(pacientId)
+      : Promise.resolve(),
+  ])
 }
 
 function pornestePollingIstoric() {
@@ -587,7 +610,7 @@ function pornestePollingIstoric() {
   }
 
   intervalIstoricId = setInterval(() => {
-    void pacientiStore.incarcaIstoric(pacientId, numarMasuratori.value)
+    void reincarcaIstoric()
   }, intervalPollingMs)
 }
 
@@ -618,7 +641,7 @@ function inchideFormularPrag() {
 function incepeEditarePrag(prag: PragAlerta) {
   pragEditatId.value = prag.idPrag
   formularPrag.value = {
-    tipParametru: prag.tipParametru,
+    tipParametru: normalizeazaTipParametru(prag.tipParametru),
     valoareMinima: prag.valoareMinima ?? undefined,
     valoareMaxima: prag.valoareMaxima ?? undefined,
     durataPersistentaSec: prag.durataPersistentaSec,
@@ -750,6 +773,10 @@ function etichetaParametru(tipParametru?: string | null) {
   }
 
   return tipParametru || '-'
+}
+
+function esteActiva(stare?: string | null) {
+  return stare === 'Activa' || stare === 'Activă'
 }
 </script>
 
@@ -937,7 +964,8 @@ h2 {
 }
 
 .camp input,
-.camp textarea {
+.camp textarea,
+.camp select {
   width: 100%;
   padding: 0.55rem 0.75rem;
   border: 2px solid #e2e8f0;
@@ -953,7 +981,8 @@ h2 {
   resize: vertical;
 }
 .camp input:focus,
-.camp textarea:focus { border-color: #0047AB; }
+.camp textarea:focus,
+.camp select:focus { border-color: #0047AB; }
 
 .eroare-formular {
   background-color: #fff5f5;

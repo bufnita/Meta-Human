@@ -8,9 +8,11 @@ namespace MetaHuman.Backend.Services;
 
 public class AlertService
 {
-    private const string StareActiva = "Activă";
-    private const string StareRezolvata = "Rezolvată";
-    private const string StareIgnorata = "Ignorată";
+    private const string StareActiva = "Activa";
+    private const string StareActivaCuDiacritice = "Activă";
+    private const string StareRezolvata = "Rezolvata";
+    private const string StareIgnorata = "Ignorata";
+    private const string TipAlertaDepasirePrag = "Depasire prag";
 
     private readonly MetaHumanContext _context;
     private readonly IdentitateClinicalaResolver _identitateClinicala;
@@ -27,62 +29,96 @@ public class AlertService
         Masuratoare masuratoare,
         CancellationToken cancellationToken = default)
     {
-        var prag = await _context.PraguriAlerta
-            .FirstOrDefaultAsync(p =>
-                    p.IdPacient == masuratoare.IdPacient
-                    && p.TipParametru == masuratoare.TipParametru
-                    && p.Activ,
-                cancellationToken);
+        var tipParametru = ParametruClinicHelper.NormalizeazaFaraValidare(masuratoare.TipParametru);
 
-        if (prag == null || !EsteDepasire(masuratoare.Valoare, prag))
-            return;
-
-        var deLa = masuratoare.DataOra.AddSeconds(-prag.DurataPersistentaSec);
-
-        var masuratoriRecente = await _context.Masuratori
-            .Where(m =>
-                m.IdPacient == masuratoare.IdPacient
-                && m.TipParametru == masuratoare.TipParametru
-                && m.DataOra >= deLa
-                && m.DataOra <= masuratoare.DataOra)
-            .OrderBy(m => m.DataOra)
+        var alerteActive = await _context.Alerte
+            .Where(a =>
+                a.IdPacient == masuratoare.IdPacient
+                && (a.Stare == StareActiva || a.Stare == StareActivaCuDiacritice)
+                && a.ParametruAsociat.ToLower() == tipParametru)
             .ToListAsync(cancellationToken);
 
-        if (masuratoriRecente.Count == 0
-            || masuratoriRecente.Any(m => !EsteDepasire(m.Valoare, prag)))
-            return;
+        var existaModificari = RezolvaAlerteCareAuRevenitInInterval(
+            alerteActive,
+            masuratoare.Valoare,
+            tipParametru);
 
-        var existaAlertaActiva = await _context.Alerte.AnyAsync(
-            a => a.IdPacient == masuratoare.IdPacient
-                 && a.ParametruAsociat == masuratoare.TipParametru
-                 && a.Stare == StareActiva,
-            cancellationToken);
+        var praguri = await _context.PraguriAlerta
+            .Where(p =>
+                p.IdPacient == masuratoare.IdPacient
+                && p.Activ
+                && p.TipParametru.ToLower() == tipParametru)
+            .ToListAsync(cancellationToken);
 
-        if (existaAlertaActiva)
-            return;
-
-        var pacient = await _context.Pacienti
-            .AsNoTracking()
-            .FirstAsync(p => p.IdPacient == masuratoare.IdPacient, cancellationToken);
-
-        var alerta = new Alerta
+        if (praguri.Count == 0)
         {
-            IdPacient = masuratoare.IdPacient,
-            IdMedic = pacient.IdMedic,
-            TipAlerta = "DepasirePrag",
-            ParametruAsociat = masuratoare.TipParametru,
-            PragMinim = prag.ValoareMinima,
-            PragMaxim = prag.ValoareMaxima,
-            ValoareConstatata = masuratoare.Valoare,
-            DataOra = masuratoare.DataOra,
-            DurataPersistentaSec = prag.DurataPersistentaSec,
-            Mesaj =
-                $"Depășire {masuratoare.TipParametru}: {masuratoare.Valoare} {masuratoare.UnitateMasura}",
-            Stare = StareActiva
-        };
+            if (existaModificari)
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+            }
 
-        _context.Alerte.Add(alerta);
-        await _context.SaveChangesAsync(cancellationToken);
+            return;
+        }
+
+        var masuratoriParametru = await _context.Masuratori
+            .Where(m =>
+                m.IdPacient == masuratoare.IdPacient
+                && m.DataOra <= masuratoare.DataOra
+                && m.TipParametru.ToLower() == tipParametru)
+            .OrderByDescending(m => m.DataOra)
+            .ToListAsync(cancellationToken);
+
+        Pacient? pacient = null;
+
+        foreach (var prag in praguri.OrderBy(p => p.DurataPersistentaSec))
+        {
+            if (!EsteDepasireSemnificativa(masuratoare.Valoare, prag, tipParametru))
+            {
+                continue;
+            }
+
+            if (!DurataPersistentaEsteRespectata(
+                    masuratoriParametru,
+                    prag,
+                    masuratoare.DataOra,
+                    tipParametru))
+            {
+                continue;
+            }
+
+            if (ExistaAlertaActivaPentruPrag(alerteActive, prag))
+            {
+                continue;
+            }
+
+            pacient ??= await _context.Pacienti
+                .AsNoTracking()
+                .FirstAsync(p => p.IdPacient == masuratoare.IdPacient, cancellationToken);
+
+            var alertaNoua = new Alerta
+            {
+                IdPacient = masuratoare.IdPacient,
+                IdMedic = pacient.IdMedic,
+                TipAlerta = TipAlertaDepasirePrag,
+                ParametruAsociat = tipParametru,
+                PragMinim = prag.ValoareMinima,
+                PragMaxim = prag.ValoareMaxima,
+                ValoareConstatata = masuratoare.Valoare,
+                DataOra = masuratoare.DataOra,
+                DurataPersistentaSec = prag.DurataPersistentaSec,
+                Mesaj = ConstruiesteMesajAlerta(masuratoare, prag),
+                Stare = StareActiva
+            };
+
+            _context.Alerte.Add(alertaNoua);
+            alerteActive.Add(alertaNoua);
+            existaModificari = true;
+        }
+
+        if (existaModificari)
+        {
+            await _context.SaveChangesAsync(cancellationToken);
+        }
     }
 
     public async Task<IReadOnlyList<RaspunsAlertaDTO>> ObtinePentruMedicCurentAsync(
@@ -90,7 +126,9 @@ public class AlertService
     {
         var idMedic = await _identitateClinicala.ObtineIdMedicCurentAsync(cancellationToken);
         if (!idMedic.HasValue)
+        {
             return Array.Empty<RaspunsAlertaDTO>();
+        }
 
         var alerte = await QueryAlerte()
             .Where(a => a.IdMedic == idMedic.Value)
@@ -105,10 +143,14 @@ public class AlertService
     {
         var idMedic = await _identitateClinicala.ObtineIdMedicCurentAsync(cancellationToken);
         if (!idMedic.HasValue)
+        {
             return Array.Empty<RaspunsAlertaDTO>();
+        }
 
         var alerte = await QueryAlerte()
-            .Where(a => a.IdMedic == idMedic.Value && a.Stare == StareActiva)
+            .Where(a =>
+                a.IdMedic == idMedic.Value
+                && (a.Stare == StareActiva || a.Stare == StareActivaCuDiacritice))
             .OrderByDescending(a => a.DataOra)
             .ToListAsync(cancellationToken);
 
@@ -132,7 +174,9 @@ public class AlertService
     {
         var idPacient = await _identitateClinicala.ObtineIdPacientCurentAsync(cancellationToken);
         if (!idPacient.HasValue)
+        {
             throw new AccesInterzisException("Profilul de pacient nu a fost gasit.");
+        }
 
         return await ObtinePentruPacientAsync(idPacient.Value, cancellationToken);
     }
@@ -163,17 +207,23 @@ public class AlertService
     {
         var idMedic = await _identitateClinicala.ObtineIdMedicCurentAsync(cancellationToken);
         if (!idMedic.HasValue)
-            throw new AccesInterzisException("Profilul de medic nu a fost găsit.");
+        {
+            throw new AccesInterzisException("Profilul de medic nu a fost gasit.");
+        }
 
         var alerta = await _context.Alerte
             .Include(a => a.Pacient)
             .FirstOrDefaultAsync(a => a.IdAlerta == idAlerta, cancellationToken);
 
         if (alerta == null)
-            throw new ResursaNegasitaException("Alerta nu a fost găsită.");
+        {
+            throw new ResursaNegasitaException("Alerta nu a fost gasita.");
+        }
 
         if (alerta.IdMedic != idMedic.Value)
-            throw new AccesInterzisException("Nu aveți acces la această alertă.");
+        {
+            throw new AccesInterzisException("Nu aveti acces la aceasta alerta.");
+        }
 
         return alerta;
     }
@@ -181,31 +231,153 @@ public class AlertService
     private IQueryable<Alerta> QueryAlerte() =>
         _context.Alerte.Include(a => a.Pacient);
 
-    private static bool EsteDepasire(decimal valoare, PragAlerta prag)
+    private static bool DurataPersistentaEsteRespectata(
+        IReadOnlyList<Masuratoare> masuratoriDescrescator,
+        PragAlerta prag,
+        DateTime momentCurent,
+        string tipParametru)
     {
-        if (prag.ValoareMinima.HasValue && valoare < prag.ValoareMinima.Value)
-            return true;
+        DateTime? inceputAnormal = null;
 
-        if (prag.ValoareMaxima.HasValue && valoare > prag.ValoareMaxima.Value)
+        foreach (var masuratoare in masuratoriDescrescator)
+        {
+            if (!EsteDepasireSemnificativa(
+                    masuratoare.Valoare,
+                    prag,
+                    tipParametru))
+            {
+                break;
+            }
+
+            inceputAnormal = masuratoare.DataOra;
+        }
+
+        if (!inceputAnormal.HasValue)
+        {
+            return false;
+        }
+
+        return momentCurent >= inceputAnormal.Value.AddSeconds(prag.DurataPersistentaSec);
+    }
+
+    private static bool EsteDepasireSemnificativa(
+        decimal valoare,
+        PragAlerta prag,
+        string tipParametru)
+    {
+        return EsteDepasireSemnificativa(
+            valoare,
+            prag.ValoareMinima,
+            prag.ValoareMaxima,
+            tipParametru);
+    }
+
+    private static bool EsteDepasireSemnificativa(
+        decimal valoare,
+        decimal? pragMinim,
+        decimal? pragMaxim,
+        string tipParametru)
+    {
+        var marjaToleranta = ObtineMarjaToleranta(tipParametru);
+
+        if (pragMinim.HasValue
+            && valoare <= pragMinim.Value - marjaToleranta)
+        {
             return true;
+        }
+
+        if (pragMaxim.HasValue
+            && valoare >= pragMaxim.Value + marjaToleranta)
+        {
+            return true;
+        }
 
         return false;
     }
 
-    private static RaspunsAlertaDTO MapLaRaspuns(Alerta a) => new()
+    private static bool RezolvaAlerteCareAuRevenitInInterval(
+        IEnumerable<Alerta> alerteActive,
+        decimal valoareCurenta,
+        string tipParametru)
     {
-        IdAlerta = a.IdAlerta,
-        IdPacient = a.IdPacient,
-        PacientNume = a.Pacient.Nume,
-        PacientPrenume = a.Pacient.Prenume,
-        TipAlerta = a.TipAlerta,
-        ParametruAsociat = a.ParametruAsociat,
-        PragMinim = a.PragMinim,
-        PragMaxim = a.PragMaxim,
-        ValoareConstatata = a.ValoareConstatata,
-        DataOra = a.DataOra,
-        DurataPersistentaSec = a.DurataPersistentaSec,
-        Mesaj = a.Mesaj,
-        Stare = a.Stare
+        var existaModificari = false;
+
+        foreach (var alerta in alerteActive)
+        {
+            if (!EsteStareActiva(alerta.Stare))
+            {
+                continue;
+            }
+
+            if (EsteDepasireSemnificativa(
+                    valoareCurenta,
+                    alerta.PragMinim,
+                    alerta.PragMaxim,
+                    tipParametru))
+            {
+                continue;
+            }
+
+            alerta.Stare = StareRezolvata;
+            existaModificari = true;
+        }
+
+        return existaModificari;
+    }
+
+    private static bool ExistaAlertaActivaPentruPrag(
+        IEnumerable<Alerta> alerteActive,
+        PragAlerta prag)
+    {
+        return alerteActive.Any(alerta =>
+            EsteStareActiva(alerta.Stare)
+            && ParametruClinicHelper.NormalizeazaFaraValidare(alerta.ParametruAsociat)
+                == ParametruClinicHelper.NormalizeazaFaraValidare(prag.TipParametru)
+            && alerta.PragMinim == prag.ValoareMinima
+            && alerta.PragMaxim == prag.ValoareMaxima
+            && alerta.DurataPersistentaSec == prag.DurataPersistentaSec);
+    }
+
+    private static bool EsteStareActiva(string? stare)
+    {
+        return string.Equals(stare, StareActiva, StringComparison.Ordinal)
+            || string.Equals(stare, StareActivaCuDiacritice, StringComparison.Ordinal);
+    }
+
+    private static decimal ObtineMarjaToleranta(string tipParametru)
+    {
+        return ParametruClinicHelper.NormalizeazaFaraValidare(tipParametru) switch
+        {
+            ParametruClinicHelper.Temperatura => 0.5m,
+            ParametruClinicHelper.Puls => 10m,
+            ParametruClinicHelper.Ecg => 50m,
+            _ => 0m
+        };
+    }
+
+    private static string ConstruiesteMesajAlerta(Masuratoare masuratoare, PragAlerta prag)
+    {
+        var directie = prag.ValoareMaxima.HasValue && masuratoare.Valoare > prag.ValoareMaxima.Value
+            ? $"a depasit maximul de {prag.ValoareMaxima.Value}"
+            : $"a scazut sub minimul de {prag.ValoareMinima?.ToString() ?? "-"}";
+
+        return $"{masuratoare.TipParametru} {directie} pentru cel putin {prag.DurataPersistentaSec} secunde. Valoare curenta: {masuratoare.Valoare} {masuratoare.UnitateMasura}.";
+    }
+
+    private static RaspunsAlertaDTO MapLaRaspuns(Alerta alerta) => new()
+    {
+        IdAlerta = alerta.IdAlerta,
+        IdPacient = alerta.IdPacient,
+        PacientNume = alerta.Pacient.Nume,
+        PacientPrenume = alerta.Pacient.Prenume,
+        TipAlerta = alerta.TipAlerta,
+        ParametruAsociat = ParametruClinicHelper.NormalizeazaFaraValidare(alerta.ParametruAsociat),
+        PragMinim = alerta.PragMinim,
+        PragMaxim = alerta.PragMaxim,
+        ValoareConstatata = alerta.ValoareConstatata,
+        DataOra = alerta.DataOra,
+        DurataPersistentaSec = alerta.DurataPersistentaSec,
+        Mesaj = alerta.Mesaj,
+        Stare = alerta.Stare
     };
 }

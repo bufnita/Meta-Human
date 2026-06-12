@@ -30,12 +30,14 @@ public class MasuratoareService
         CancellationToken cancellationToken = default)
     {
         await VerificaPacientAutentificatAsync(cerere.IdPacient, cancellationToken);
-        ValideazaValoareFiziologica(cerere.TipParametru, cerere.Valoare);
+
+        var tipParametru = ParametruClinicHelper.NormalizeazaSauArunca(cerere.TipParametru);
+        ValideazaValoareFiziologica(tipParametru, cerere.Valoare);
 
         var masuratoare = new Masuratoare
         {
             IdPacient = cerere.IdPacient,
-            TipParametru = cerere.TipParametru.Trim(),
+            TipParametru = tipParametru,
             Valoare = cerere.Valoare,
             UnitateMasura = cerere.Unitate.Trim(),
             DataOra = cerere.DataOra,
@@ -58,7 +60,9 @@ public class MasuratoareService
         CancellationToken cancellationToken = default)
     {
         if (ultimele <= 0)
+        {
             ultimele = 100;
+        }
 
         var masuratori = await _context.Masuratori
             .Where(m => m.IdPacient == idPacient)
@@ -79,7 +83,9 @@ public class MasuratoareService
     {
         var idPacient = await _identitateClinicala.ObtineIdPacientCurentAsync(cancellationToken);
         if (!idPacient.HasValue)
-            throw new AccesInterzisException("Profilul de pacient nu a fost găsit.");
+        {
+            throw new AccesInterzisException("Profilul de pacient nu a fost gasit.");
+        }
 
         return await ObtineIstoricAsync(idPacient.Value, ultimele, cancellationToken);
     }
@@ -89,40 +95,38 @@ public class MasuratoareService
         CancellationToken cancellationToken)
     {
         if (!_utilizatorCurent.EstePacient)
-            throw new AccesInterzisException("Doar pacienții pot trimite măsurători.");
+        {
+            throw new AccesInterzisException("Doar pacientii pot trimite masuratori.");
+        }
 
         var idPacient = await _identitateClinicala.ObtineIdPacientCurentAsync(cancellationToken);
         if (!idPacient.HasValue || idPacient.Value != idPacientDinCerere)
-            throw new AccesInterzisException("Nu puteți trimite măsurători pentru alt pacient.");
+        {
+            throw new AccesInterzisException("Nu puteti trimite masuratori pentru alt pacient.");
+        }
     }
 
     private static void ValideazaValoareFiziologica(string tipParametru, decimal valoare)
     {
-        var interval = tipParametru.Trim().ToLowerInvariant() switch
-        {
-            "puls" => (Minim: 1m, Maxim: 300m),
-            "temperatura" => (Minim: 20m, Maxim: 45m),
-            "ecg" => (Minim: 0m, Maxim: 1023m),
-            _ => ((decimal Minim, decimal Maxim)?)null
-        };
+        var interval = ParametruClinicHelper.ObtineIntervalFiziologic(tipParametru);
 
         if (interval.HasValue
             && (valoare < interval.Value.Minim || valoare > interval.Value.Maxim))
         {
             throw new InvalidOperationException(
-                $"Valoarea pentru {tipParametru.Trim()} trebuie să fie între "
-                + $"{interval.Value.Minim} și {interval.Value.Maxim}.");
+                $"Valoarea pentru {tipParametru.Trim()} trebuie sa fie intre "
+                + $"{interval.Value.Minim} si {interval.Value.Maxim}.");
         }
     }
 
-    private static RaspunsMasuratoareDTO MapLaRaspuns(Masuratoare m) => new()
+    private static RaspunsMasuratoareDTO MapLaRaspuns(Masuratoare masuratoare) => new()
     {
-        IdMasuratoare = m.IdMasuratoare,
-        IdPacient = m.IdPacient,
-        TipParametru = m.TipParametru,
-        Valoare = m.Valoare,
-        UnitateMasura = m.UnitateMasura,
-        DataOra = m.DataOra,
-        Stare = m.Stare
+        IdMasuratoare = masuratoare.IdMasuratoare,
+        IdPacient = masuratoare.IdPacient,
+        TipParametru = ParametruClinicHelper.NormalizeazaFaraValidare(masuratoare.TipParametru),
+        Valoare = masuratoare.Valoare,
+        UnitateMasura = masuratoare.UnitateMasura,
+        DataOra = masuratoare.DataOra,
+        Stare = masuratoare.Stare
     };
 }
