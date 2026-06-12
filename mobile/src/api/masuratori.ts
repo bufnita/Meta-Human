@@ -6,13 +6,14 @@ export const trimiteMasuratoare = async (
   valoare: number,
   unitate: string,
   sursa: string,
+  dataOra?: string,
 ) => {
   const raspuns = await api.post('/masuratori', {
     idPacient,
     tipParametru,
     valoare,
     unitate,
-    dataOra: new Date().toISOString(),
+    dataOra: dataOra ?? new Date().toISOString(),
     sursa,
   });
 

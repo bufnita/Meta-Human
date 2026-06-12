@@ -16,6 +16,11 @@ import { obtineIstoricMasuratori, trimiteMasuratoare } from '../api/masuratori';
 import Card from '../components/Card';
 import { ButonPrimar } from '../components/Buton';
 import { culori } from '../styles/tema';
+import {
+  adaugaMasuratoareOffline,
+  sincronizeazaMasuratoriOffline,
+  type MasuratoareOffline,
+} from '../utils/coadaMasuratoriOffline';
 import { formateazaDataOraRomania } from '../utils/dataOra';
 
 type Masuratoare = {
@@ -85,6 +90,7 @@ const NUMAR_MAXIM_MOSTRE_PULS = 5;
 const NUMAR_MAXIM_MOSTRE_ECG = 8;
 const INTERVAL_VERIFICARE_VALORI_MS = 1000;
 const INTERVAL_TRIMITERE_BACKEND_MS = 5000;
+const INTERVAL_SINCRONIZARE_OFFLINE_MS = 20000;
 
 const creeazaUltimeleValoriValideInitiale = () => ({
   temperatura: null,
@@ -154,6 +160,7 @@ export default function EcranMonitorizare({ navigation }: any) {
     ...sesiuneBluetoothPersistenta.valoriLive,
   });
   const trimitereInCursRef = useRef(false);
+  const sincronizareOfflineInCursRef = useRef(false);
   const ascultatorDateRef = useRef<{ remove?: () => void } | null>(null);
   const ultimeleValoriValideRef = useRef<
     Record<TipMetrica, ValoareTemporizata | null>
@@ -200,7 +207,7 @@ export default function EcranMonitorizare({ navigation }: any) {
     try {
       const raspuns = await obtineIstoricMasuratori(20);
       setMasuratori(extrageMasuratoriDinRaspuns(raspuns));
-    } catch {
+        } catch {
       setMasuratori([]);
     } finally {
       setSeIncarca(false);
@@ -216,6 +223,52 @@ export default function EcranMonitorizare({ navigation }: any) {
 
     await incarcaIstoric();
   }, [incarcaIstoric]);
+
+  const sincronizeazaMasuratoriOfflineCuBackend = useCallback(
+    async (ignoraBlocareTrimitere = false) => {
+      if (
+        sincronizareOfflineInCursRef.current ||
+        (!ignoraBlocareTrimitere && trimitereInCursRef.current)
+      ) {
+        return;
+      }
+
+      sincronizareOfflineInCursRef.current = true;
+
+      try {
+        const rezultat = await sincronizeazaMasuratoriOffline(
+          (masuratoareOffline: MasuratoareOffline) =>
+            trimiteMasuratoare(
+              masuratoareOffline.idPacient,
+              masuratoareOffline.tipParametru,
+              masuratoareOffline.valoare,
+              masuratoareOffline.unitate,
+              masuratoareOffline.sursa,
+              masuratoareOffline.dataOra,
+            ),
+        );
+
+        if (!rezultat.sincronizate.length) {
+          return;
+        }
+
+        const masuratoriSincronizate = rezultat.sincronizate
+          .map(item => normalizeazaMasuratoare(item.raspuns))
+          .filter((item): item is Masuratoare => item !== null);
+
+        if (!masuratoriSincronizate.length) {
+          return;
+        }
+
+        setMasuratori(curent =>
+          combinaMasuratori(curent, masuratoriSincronizate),
+        );
+      } finally {
+        sincronizareOfflineInCursRef.current = false;
+      }
+    },
+    [],
+  );
 
   const reseteazaStareaLive = () => {
     bufferBluetoothRef.current = '';
@@ -254,7 +307,9 @@ export default function EcranMonitorizare({ navigation }: any) {
         setDispozitiv(hc05);
         setConectat(true);
         citesteDatele(hc05);
+        return;
       }
+      Alert.alert('Eroare', 'Nu s-a putut conecta la HC-05.');
     } catch {
       Alert.alert('Eroare', 'Nu s-a putut conecta la HC-05.');
     }
@@ -472,7 +527,12 @@ export default function EcranMonitorizare({ navigation }: any) {
   }, []);
 
   const trimiteValoriDisponibile = useCallback(async () => {
-    if (!idPacient || !conectat || trimitereInCursRef.current) {
+    if (
+      !idPacient ||
+      !conectat ||
+      trimitereInCursRef.current ||
+      sincronizareOfflineInCursRef.current
+    ) {
       return;
     }
 
@@ -488,48 +548,76 @@ export default function EcranMonitorizare({ navigation }: any) {
     trimitereInCursRef.current = true;
 
     try {
+      let aExistatTrimitereLiveCuSucces = false;
+
       for (const tip of metriciDeTrimis) {
         const valoare = valoriLiveRef.current[tip];
+        const ultimaValoareValida = ultimeleValoriValideRef.current[tip];
 
-        if (valoare === null) {
+        if (valoare === null || !ultimaValoareValida) {
           continue;
         }
 
-        const raspuns = await trimiteMasuratoare(
-          idPacient,
-          tip,
-          valoare,
-          POLITICI_METRICE[tip].unitate,
-          'bluetooth',
-        );
+        const timestampMasurare = ultimaValoareValida.timestamp;
+        const dataOraMasurare = new Date(timestampMasurare).toISOString();
 
-        ultimeleValoriTrimiseRef.current[tip] = {
-          valoare,
-          timestamp: Date.now(),
-        };
-        sincronizeazaSesiuneaBluetooth();
-
-        const masuratoareNoua = normalizeazaMasuratoare(raspuns);
-
-        if (masuratoareNoua) {
-          setMasuratori(curent =>
-            [masuratoareNoua, ...curent]
-              .filter(
-                (item, index, lista) =>
-                  lista.findIndex(
-                    existent => existent.idMasuratoare === item.idMasuratoare,
-                  ) === index,
-              )
-              .slice(0, 20),
+        try {
+          const raspuns = await trimiteMasuratoare(
+            idPacient,
+            tip,
+            valoare,
+            POLITICI_METRICE[tip].unitate,
+            'bluetooth',
+            dataOraMasurare,
           );
+
+          ultimeleValoriTrimiseRef.current[tip] = {
+            valoare,
+            timestamp: timestampMasurare,
+          };
+          sincronizeazaSesiuneaBluetooth();
+          aExistatTrimitereLiveCuSucces = true;
+
+          const masuratoareNoua = normalizeazaMasuratoare(raspuns);
+
+          if (masuratoareNoua) {
+            setMasuratori(curent =>
+              combinaMasuratori(curent, [masuratoareNoua]),
+            );
+          }
+        } catch {
+          await adaugaMasuratoareOffline({
+            idPacient,
+            tipParametru: tip,
+            valoare,
+            unitate: POLITICI_METRICE[tip].unitate,
+            sursa: 'bluetooth',
+            dataOra: dataOraMasurare,
+          });
+
+          ultimeleValoriTrimiseRef.current[tip] = {
+            valoare,
+            timestamp: timestampMasurare,
+          };
+          sincronizeazaSesiuneaBluetooth();
         }
+      }
+
+      if (aExistatTrimitereLiveCuSucces) {
+        await sincronizeazaMasuratoriOfflineCuBackend(true);
       }
     } catch {
       // Erorile temporare de rețea sunt ignorate pentru a nu întrerupe monitorizarea.
     } finally {
       trimitereInCursRef.current = false;
     }
-  }, [conectat, idPacient, trebuieTrimisaMetrica]);
+  }, [
+    conectat,
+    idPacient,
+    trebuieTrimisaMetrica,
+    sincronizeazaMasuratoriOfflineCuBackend,
+    sincronizeazaSesiuneaBluetooth,
+  ]);
 
   const deconectareBluetooth = async () => {
     try {
@@ -564,6 +652,7 @@ export default function EcranMonitorizare({ navigation }: any) {
     const initializare = async () => {
       await cerePermisiuni();
       await incarcaDate();
+      await sincronizeazaMasuratoriOfflineCuBackend();
 
       if (
         sesiuneBluetoothPersistenta.conectat &&
@@ -596,7 +685,12 @@ export default function EcranMonitorizare({ navigation }: any) {
     return () => {
       opresteAscultareaBluetooth();
     };
-  }, [cerePermisiuni, incarcaDate, opresteAscultareaBluetooth]);
+  }, [
+    cerePermisiuni,
+    incarcaDate,
+    opresteAscultareaBluetooth,
+    sincronizeazaMasuratoriOfflineCuBackend,
+  ]);
 
   useEffect(() => {
     if (!conectat) {
@@ -627,6 +721,18 @@ export default function EcranMonitorizare({ navigation }: any) {
       clearInterval(interval);
     };
   }, [conectat, idPacient, trimiteValoriDisponibile]);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      sincronizeazaMasuratoriOfflineCuBackend().catch(() => {
+        // Daca sincronizarea esueaza, masuratorile raman in coada locala.
+      });
+    }, INTERVAL_SINCRONIZARE_OFFLINE_MS);
+
+    return () => {
+      clearInterval(interval);
+    };
+  }, [sincronizeazaMasuratoriOfflineCuBackend]);
 
   return (
     <View style={stiluri.container}>
@@ -805,6 +911,21 @@ function extrageMasuratoriDinRaspuns(raspuns: any) {
         .map(item => normalizeazaMasuratoare(item))
         .filter((item): item is Masuratoare => item !== null)
     : [];
+}
+
+function combinaMasuratori(existente: Masuratoare[], noi: Masuratoare[]) {
+  return [...noi, ...existente]
+    .filter(
+      (item, index, lista) =>
+        lista.findIndex(
+          existent => existent.idMasuratoare === item.idMasuratoare,
+        ) === index,
+    )
+    .sort(
+      (a, b) =>
+        new Date(b.dataOra).getTime() - new Date(a.dataOra).getTime(),
+    )
+    .slice(0, 20);
 }
 
 function esteNumarValid(valoare: unknown): valoare is number {
